@@ -15,3 +15,13 @@ def get_connection():
     )
 
     return connection
+
+from contextlib import contextmanager
+
+@contextmanager
+def db_connection():
+    connection = get_connection()
+    try:
+        yield connection
+    finally:
+        connection.close()
