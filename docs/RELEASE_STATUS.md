@@ -141,3 +141,16 @@ Staging commit 3d08080 now preserves tab login through refresh, validates the sa
 session on startup, and clears it on logout or server rejection. Eight-hour expiry
 is unchanged. Isolated browser regression checks and deployed Chrome login/refresh/
 logout checks passed. Existing open pages need one refresh and sign-in to adopt it.
+
+
+## Salesperson customer and credit access ? 17 November 2026, Africa/Lagos
+
+The owner's updated rule allows Salespersons to create/edit contact details,
+record credit sales and collect Cash/POS repayments within their assigned branch.
+Balances remain transaction-derived. Customer activation, repayment reversals and
+sale corrections stay Manager/Admin only. Server scope checks also cover saved
+request replay after branch reassignment. No schema migration is required.
+
+Validation: 178 backend tests, five targeted customer safeguard checks and browser
+staff customer/credit/repayment workflows passed on disposable PostgreSQL. No online
+business transactions were submitted during verification.
