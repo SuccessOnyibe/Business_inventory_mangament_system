@@ -112,12 +112,12 @@ use total product stock; check physical labels before selling. See
 ## Customers
 
 The Customers tab lists branch-scoped contacts. Managers/Admins can add, edit or
-deactivate records; Salespersons can only view their assigned branch. Credit invoices and repayments are in the separate Customer credit tab. See [Customer credit](CUSTOMER_CREDIT.md)
+deactivate records; Salespersons can add/edit contact details in their assigned branch; only Managers/Admins change active/inactive status. Credit invoices and repayments are in the separate Customer credit tab. See [Customer credit](CUSTOMER_CREDIT.md)
 for the confirmed business rules and the next accounting stage.
 
 ## Credit and release operations
 
-Managers/Admins can record full credit sales for active registered customers,
+Staff can record full credit sales for active registered customers in accessible branches,
 then record later Cash/POS repayments and print receipts in Customer credit.
 Credit corrections reduce unpaid debt before paying any actual refund.
 Customer balances include all invoices, independent of the visible history page.

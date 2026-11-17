@@ -2,7 +2,8 @@
 
 ## Confirmed business rules
 
-- Only Managers/Admins record credit sales.
+- Salespersons record credit sales and repayments for their assigned branch.
+- Managers/Admins can work across branches and approve corrections/reversals.
 - The entire credit sale is owed initially; no upfront deposit or mixed payment.
 - Repayments happen later and may be recorded separately from the original sale.
 
@@ -19,8 +20,8 @@ Check the existing list before creating another record. Names and phone numbers
 are not unique: different customers may legitimately share them. The customer ID
 is the permanent identity that the future ledger will reference.
 
-Salespersons can view contacts only for their assigned branch and cannot change
-them. Managers/Admins see all branches and use the branch filter to narrow the
+Salespersons can add, edit and view customer contacts only for their assigned
+branch. Only Managers/Admins change active/inactive status. Managers/Admins see all branches and use the branch filter to narrow the
 list. Notes are visible to staff with access to that branch's customer directory.
 The same person at two branches currently has separate branch customer records;
 this stage does not merge identities across branches.
@@ -32,7 +33,7 @@ Changing contact information does not change any existing receipt's customer
 name or invent a debt from historical cash/POS sales.
 
 Each update includes the version displayed when the form was opened. If another
-Manager saved a change first, the stale form gets 409: refresh and reopen it to
+staff member saved a change first, the stale form gets 409: refresh and reopen it to
 avoid silently overwriting that change. Creation/update, audit and saved retry
 response commit in one transaction. A failure rolls them all back. A retry with
 the original UUID key and unchanged body returns the original result. Saved
@@ -41,10 +42,10 @@ requests survive reload through the existing locked-form retry mechanism.
 ## API and schema
 
 - `GET /customers`: optional branch_id, limit (1-500), offset; scoped by role.
-- `POST /customers`: branch_id, name, optional phone and notes; Manager/Admin,
+- `POST /customers`: branch_id, name, optional phone and notes; assigned-branch staff,
   Idempotency-Key UUID; returns 201.
 - `POST /customers/{id}/update`: name, optional phone/notes, is_active boolean,
-  expected_version integer; Manager/Admin and Idempotency-Key; returns 200.
+  expected_version integer; assigned-branch staff and Idempotency-Key; returns 200.
 
 Update replaces the editable contact fields; null/omitted phone or notes clears
 them. Branch cannot be changed. Names are trimmed and must not be blank. Invalid
@@ -58,19 +59,19 @@ sales, cash, receipt labels and other business records are unchanged.
 
 ## Credit accounting and API
 
-In Sales, Managers/Admins choose Credit and an active registered customer in the
+In Sales, staff choose Credit and an active registered customer in the
 same branch. Stock and the sale commit together. The whole amount is initially
 owed; no upfront deposit or mixed payment is accepted. Discounts still follow
 Admin-set limits. The customer name on the receipt is a snapshot, so later
 contact edits cannot rewrite historical documents.
 
 - `POST /checkouts`: payment_method credit and customer_id, alongside normal
-  branch/items, using an Idempotency-Key. Salespersons receive 403 for credit.
+  branch/items, using an Idempotency-Key. Salespersons receive 403 for another branch or when unassigned.
 - `GET /credit-sales`: branch-scoped paginated invoices and current balances.
 - `GET /customers/{id}/balance`: current outstanding over ALL customer invoices,
   independent of the history page displayed in the UI.
 - `POST /credit-repayments`: order_id, positive amount, actual payment_method cash
-  or pos, optional notes, and Idempotency-Key. Manager/Admin only. Partial payments
+  or pos, optional notes, and Idempotency-Key. Assigned-branch staff may record payments. Partial payments
   allowed; overpayments rejected, including competing concurrent payments.
 - `GET /credit-repayments`: branch-scoped history, optional order_id and pagination.
 - `POST /credit-repayments/{id}/void`: required reason and Idempotency-Key;
@@ -80,7 +81,8 @@ contact edits cannot rewrite historical documents.
 Repayments/reversals post on the actual recording date in Africa/Lagos. They do
 not contact a bank or POS terminal. Record only actual confirmed collections;
 reverse only mistaken entries, not genuine repayments the customer still made.
-Repayment recording is deliberately Manager/Admin only for this first release.
+Repayment recording is available to assigned-branch Salespersons and Managers/Admins.
+Repayment reversals and sale corrections remain Manager/Admin only.
 
 Credit balances are derived: original sale minus debt-only reductions minus net
 repayments. Each write locks the branch then receipt, checks the balance, and

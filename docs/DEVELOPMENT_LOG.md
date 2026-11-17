@@ -844,3 +844,31 @@ now waits for API liveness instead of racing a fixed startup delay.
 Deployed fix commit 3d08080 to Free staging. A separate Chrome profile verified
 real HTTPS login, refresh preserving the identical token, and logout remaining
 signed out after another refresh. No stock or financial transactions were submitted.
+
+
+## Latest Change: Salesperson Customer and Credit Entry
+
+Date: 17 November 2026, Africa/Lagos (WAT).
+
+Updated the owner's permissions rule: assigned Salespersons may create/edit branch
+customers, record credit checkouts and record actual Cash/POS repayments. Managers
+and Admins retain access across branches. Repayment reversals and sale corrections
+remain Manager/Admin only. The UI exposes the appropriate customer and credit forms.
+
+Server checks enforce branch scope before writes and before returning saved request
+responses. Unassigned staff and other-branch writes are rejected. Existing pricing,
+discount, stock, full-credit accounting, overpayment limits, locks, audit snapshots,
+version checks and idempotency remain in place. Balances are transaction-derived,
+not directly editable numbers; historical opening-debt import is not part of this
+change. No database migration is required.
+
+Validation: all 178 backend tests passed against disposable PostgreSQL, including
+own-branch credit/repayment success, cross-branch denial, moved/unassigned staff,
+retry safety and retained reversal restrictions. Updated customer permission tests
+and staff workflow documentation.
+
+Customer activation/deactivation remains Manager/Admin only, with five targeted
+customer tests passing after that safeguard. Browser regression checks passed for
+salesperson customer creation/editing, own-branch credit checkout and POS repayment,
+retained reversal restrictions and existing workflows. Account switching clears
+cached credit-customer options to avoid showing the previous account's choices.

@@ -93,6 +93,7 @@ function showLogin(clearSavedSession = true) {
   state.report = null; state.reportParams = null; $('#export-report').disabled = true; $('#discrepancy-form').hidden = true;
   $('#repayment-void-form').hidden = true;
   $('#customer-update-form').hidden = true;
+  choices($('#credit-customer'), [], 'Choose registered customer'); // Do not retain another account's customer options.
   for (const id of ['report-gross', 'report-net', 'report-unresolved']) $(`#${id}`).textContent = '—';
   $('#report-generated').textContent = ''; $('#report-missing').textContent = 'Load a report';
   for(const id of ['inventory-table','products-table','pos-products']) $('#'+id).replaceChildren();
@@ -946,11 +947,11 @@ $$('input[type=password]').forEach((input, index) => {
   input.form.addEventListener('submit', () => setVisible(false));
 });
 
-// Version checks prevent a saved form from overwriting another Manager's edit.
+// Version checks prevent a saved form from overwriting another staff member's edit.
 function renderCustomers() {
   table('#customers-table', ['Customer', 'Branch', 'Phone', 'Status', 'Notes', 'Updated / WAT', 'Action'], state.customers.map(record => {
     let action = '';
-    if (manager()) {
+    if (manager() || record.branch_id === state.user.branch_id) {
       action = node('button', 'Edit customer', 'secondary'); action.type = 'button';
       action.addEventListener('click', () => {
         const form = $('#customer-update-form');
@@ -964,7 +965,7 @@ function renderCustomers() {
         form.scrollIntoView({ behavior:'smooth', block:'center' });
       });
     }
-    if (manager()) {
+    if (manager() || record.branch_id === state.user.branch_id) {
       const group=node('div',null,'row-actions');group.append(action);const balance=node('button','View balance','secondary');balance.type='button';
       balance.addEventListener('click',async()=>{try{const result=await api(`/customers/${record.id}/balance`);notice(`${result.name}: outstanding ${money(result.outstanding)} as of ${date(result.generated_at)}.`)}catch(error){notice(error.message,true)}});group.append(balance);action=group;
     }
@@ -1007,7 +1008,7 @@ function renderCredit() {
   table('#credit-table', ['Invoice','Branch','Customer','Original credit sale','Net repayments','Debt reduced','Outstanding','Recorded / WAT','Action'], state.creditSales.map(record=>{
     const actions=node('div',null,'row-actions'); const print=node('button','Print invoice','secondary'); print.type='button';
     print.addEventListener('click',async()=>{try{receiptDetails(await api(`/checkouts/${record.id}`));printReceipt(state.receipt)}catch(error){notice(error.message,true)}}); actions.append(print);
-    if(manager() && kobo(record.outstanding)>0n){const pay=node('button','Repay','secondary');pay.type='button';pay.addEventListener('click',()=>{const form=$('#repayment-form');if(readPending(form)){notice('Retry the saved repayment first.',true);return;}form.elements.order_id.value=record.id;form.scrollIntoView({behavior:'smooth',block:'center'});});actions.append(pay);}
+    if((manager() || record.branch_id === state.user.branch_id) && kobo(record.outstanding)>0n){const pay=node('button','Repay','secondary');pay.type='button';pay.addEventListener('click',()=>{const form=$('#repayment-form');if(readPending(form)){notice('Retry the saved repayment first.',true);return;}form.elements.order_id.value=record.id;form.scrollIntoView({behavior:'smooth',block:'center'});});actions.append(pay);}
     return [record.receipt_number,branchName(record.branch_id),record.customer_name,money(record.total_amount),money(record.repaid),money(record.debt_reduced),money(record.outstanding),date(record.created_at),actions];
   }));
   if(!readPending($('#repayment-form'))) choices($('#repayment-order'),state.creditSales.filter(record=>kobo(record.outstanding)>0n).map(record=>[record.id,`${record.receipt_number} / ${record.customer_name} / owed ${money(record.outstanding)}`]),'Choose outstanding invoice');

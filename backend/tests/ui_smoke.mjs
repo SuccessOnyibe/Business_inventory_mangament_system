@@ -324,7 +324,7 @@ try {
   assert.equal(await evaluate("document.querySelector('#workspace').hidden"),true,'Logout must survive refresh');
   await login('ui_seller'); await navigate('customers');
   assert.equal(await evaluate('state.customers.length'), 1);
-  assert.equal(await evaluate("document.querySelectorAll('#customers-table button').length"), 0);
+  assert.equal(await evaluate("document.querySelectorAll('#customers-table button').length"), 2);
   assert.doesNotMatch(await evaluate("document.querySelector('#customers-table').textContent"), /Private branch one/);
   await evaluate("document.querySelector('#logout').click()");
   await wait("!document.querySelector('#login-screen').hidden");
@@ -358,6 +358,34 @@ try {
   await submit('correction-form');await saved('Correction FAS-C-');
   assert.equal(await evaluate("(await api('/credit-sales'))[0].outstanding"),'0.00');
   assert.equal(await evaluate(`(await api('/reports/financial?start_date=${day}&end_date=${day}')).totals.net_sales`),'98350.00');
+
+  await evaluate("document.querySelector('#logout').click()");
+  await wait("!document.querySelector('#login-screen').hidden");
+  await login('ui_seller');await navigate('customers');
+  assert.equal(await evaluate("document.querySelector('#customer-form').getBoundingClientRect().height > 0"),true);
+  await fill('customer-form',{name:'Salesperson credit customer',phone:'08010000003'});
+  await submit('customer-form');await saved('added.');
+  const staffCustomer=await evaluate("state.customers.find(row=>row.name==='Salesperson credit customer')");
+  assert.equal(staffCustomer.branch_id,2);
+  await evaluate("document.querySelector('#customers-table button').click()");
+  await fill('customer-update-form',{phone:'08010000004'});
+  await submit('customer-update-form');await saved('updated.');
+  await navigate('sales');
+  await fill('sale-form',{product_id:'1',quantity:'1',unit_price:'25000',payment_method:'credit'});
+  await wait(`[...document.querySelector('#credit-customer').options].some(option=>option.value===${JSON.stringify(String(staffCustomer.id))})`);
+  await fill('sale-form',{customer_id:String(staffCustomer.id)});
+  await submit('sale-form');await saved('Credit / amount owed');
+  const staffCredit=await evaluate("(await api('/credit-sales'))[0]");
+  assert.equal(staffCredit.branch_id,2);
+  await navigate('credit');
+  assert.equal(await evaluate("document.querySelector('#repayment-form').getBoundingClientRect().height>0"),true);
+  await fill('repayment-form',{order_id:String(staffCredit.id),amount:'500',payment_method:'pos'});
+  await submit('repayment-form');await saved('Outstanding:');
+  assert.equal(await evaluate("(await api('/credit-sales'))[0].outstanding"),'24500.00');
+  assert.doesNotMatch(await evaluate("document.querySelector('#repayments-table').textContent"),/Reverse entry/);
+  await evaluate("document.querySelector('#logout').click()");
+  await wait("!document.querySelector('#login-screen').hidden");
+  await login('ui_admin');
 
   if(process.env.UI_SCREENSHOT_PATH) {
     await navigate('sales');

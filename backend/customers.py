@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, Path, Query
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from auth import get_current_user, require_stock_manager, scoped_branch
+from auth import get_current_user, scoped_branch
 from database import db_connection
 from stock_requests import begin_stock_request, finish_stock_request
 
@@ -69,7 +69,8 @@ def save_customer_change(cursor, record, user_id):
 
 @router.post('/customers', status_code=201)
 def create_customer(request: CustomerCreate, idempotency_key: UUID = Header(),
-                    user: dict = Depends(require_stock_manager)):
+                    user: dict = Depends(get_current_user)):
+    scoped_branch(user, request.branch_id)
     with db_connection() as connection:
         with connection.transaction():
             with connection.cursor() as cursor:
@@ -90,10 +91,18 @@ def create_customer(request: CustomerCreate, idempotency_key: UUID = Header(),
 
 @router.post('/customers/{customer_id}/update')
 def update_customer(request: CustomerUpdate, customer_id: int = Path(gt=0, le=2147483647),
-                    idempotency_key: UUID = Header(), user: dict = Depends(require_stock_manager)):
+                    idempotency_key: UUID = Header(), user: dict = Depends(get_current_user)):
     with db_connection() as connection:
         with connection.transaction():
             with connection.cursor() as cursor:
+                # Check branch access before replaying a saved response as well as editing.
+                cursor.execute('SELECT branch_id, is_active FROM customers WHERE id = %s;', (customer_id,))
+                owner = cursor.fetchone()
+                if owner is None:
+                    raise HTTPException(status_code=404, detail='Customer not found')
+                scoped_branch(user, owner[0])
+                if user['role'] == 'salesperson' and request.is_active != owner[1]:
+                    raise HTTPException(status_code=403, detail='Only Admin/Manager can change customer status')
                 payload = {'customer_id':customer_id, **request.model_dump()}
                 previous = begin_stock_request(cursor, idempotency_key, 'customer_update', payload, user['id'])
                 if previous is not None:
@@ -102,7 +111,7 @@ def update_customer(request: CustomerUpdate, customer_id: int = Path(gt=0, le=21
                 found = cursor.fetchone()
                 if found is None:
                     raise HTTPException(status_code=404, detail='Customer not found')
-                # Reject a stale form instead of overwriting another Manager's edit.
+                # Reject a stale form instead of overwriting another staff member's edit.
                 if found[0] != request.expected_version:
                     raise HTTPException(status_code=409, detail='Customer changed; refresh and reopen the edit form')
                 cursor.execute(f'''UPDATE customers SET name = %s, phone = %s, notes = %s,

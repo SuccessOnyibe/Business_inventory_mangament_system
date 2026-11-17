@@ -18,13 +18,13 @@ barcodes into search with a keyboard-style scanner. See CATEGORIES_AND_POS.md.
 
 - Cash/POS sale: add all items to the cart, check the permitted discount and
   choose the method actually paid. Save once, then print the receipt.
-- Credit sale: a Manager/Admin chooses **Credit - full amount owed** and an active
+- Credit sale: staff choose **Credit - full amount owed** and an active
   registered customer in that branch. The entire sale starts owed. No deposit or
   mixed payment is supported. Do not enter it as Cash/POS until money arrives.
-- Repayment: Manager/Admin opens **Customer credit**, chooses the invoice and
+- Repayment: staff open **Customer credit**, chooses the invoice and
   records the actual amount and Cash/POS method. Partial payments are allowed;
   overpayment is rejected. Print the repayment receipt from history.
-- Wrong repayment entry: use **Reverse entry**, give a reason, and enter the
+- Wrong repayment entry: ask a Manager/Admin to use **Reverse entry**, give a reason, and enter the
   correct payment separately. Reversal is dated today, preserves the original,
   and changes today's expected collections. It does not contact a bank or refund
   money automatically. A payment already used for a customer refund cannot be
@@ -100,3 +100,21 @@ For a product created directly in Manage products, **Add stock for this product*
 opens the delivery form. Existing request keys still protect delivery retries.
 Only Admins/Managers can create products and receive stock. Salespersons continue
 using their assigned branch. No schema change is required for this workflow.
+
+
+## Salesperson customer and credit workflow
+
+1. Open Customers to add the customer's name, phone and notes. Your assigned
+   branch is selected automatically; existing contacts can be edited there.
+2. For an unpaid purchase, open Sales, add the goods and choose Credit - full
+   amount owed. Select the registered customer and save the sale.
+3. Open Customer credit to see invoices and remaining debt. When money is actually
+   received, record a repayment with Cash or POS terminal and print its receipt.
+
+Customer edits do not directly set balances. Debt is calculated from credit sales,
+repayments and authorized corrections. Salespersons cannot access another branch,
+reverse payments, or approve returns/voids. Dates/times and the acting staff member
+are retained in the records. Historical opening debts are not added by this change.
+
+Only Managers/Admins can deactivate/reactivate customers; salesperson contact edits
+keep the existing status, so an inactive customer cannot be re-enabled by staff.

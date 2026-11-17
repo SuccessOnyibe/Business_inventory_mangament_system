@@ -47,7 +47,7 @@ class CustomerTests(unittest.TestCase):
         self.assertEqual(self.fixture.rows('SELECT count(*) FROM customer_changes'), [(2,)])
         self.assertFalse(self.client.get('/customers').json()[0]['is_active'])
 
-    def test_staff_are_scoped_and_cannot_manage_customers(self):
+    def test_staff_can_manage_only_assigned_branch_customers(self):
         record = self.create().json()
         self.create(branch_id=2, name='Other branch customer')
         main.app.dependency_overrides[auth.get_current_user] = lambda: {'id':1,'role':'salesperson','branch_id':2}
@@ -55,6 +55,13 @@ class CustomerTests(unittest.TestCase):
         self.assertEqual(self.client.get('/customers?branch_id=1').status_code, 403)
         self.assertEqual(self.create().status_code, 403)
         self.assertEqual(self.update(record).status_code, 403)
+        own = self.create(branch_id=2, name='Own branch farm').json()
+        self.assertEqual(self.update(own, is_active=False).status_code, 403)
+        self.assertEqual(self.update(own, phone='08000000001').status_code, 200)
+        self.assertEqual(self.client.get('/customers').json()[0]['phone'], '08000000001')
+        main.app.dependency_overrides[auth.get_current_user] = lambda: {'id':1,'role':'salesperson','branch_id':None}
+        self.assertEqual(self.create(branch_id=2).status_code, 403)
+        self.assertEqual(self.update(own).status_code, 403)
 
     def test_validation_pagination_and_missing_records(self):
         for data in ({'name':' '},{'name':'X'*151},{'branch_id':True},{'phone':'X'*41}):

@@ -101,19 +101,21 @@ def customer_balance(customer_id: int = Path(gt=0, le=2147483647), user: dict = 
 
 @router.post('/credit-repayments', status_code=201)
 def repay_credit(request: CreditRepaymentCreate, idempotency_key: UUID = Header(),
-                 user: dict = Depends(require_stock_manager)):
+                 user: dict = Depends(get_current_user)):
     payload = request.model_dump(mode='json'); payload['amount'] = format(request.amount, '.2f')
     with db_connection() as connection:
         with connection.transaction():
             with connection.cursor() as cursor:
-                previous = begin_stock_request(cursor, idempotency_key, 'credit_repayment', payload, user['id'])
-                if previous is not None:
-                    return previous
                 cursor.execute("SELECT branch_id FROM sale_orders WHERE id = %s AND payment_method = 'credit';", (request.order_id,))
                 row = cursor.fetchone()
                 if row is None:
                     raise HTTPException(status_code=404, detail='Credit sale not found')
                 branch_id = row[0]
+                # Re-check scope even for a retry after an account's branch changes.
+                scoped_branch(user, branch_id)
+                previous = begin_stock_request(cursor, idempotency_key, 'credit_repayment', payload, user['id'])
+                if previous is not None:
+                    return previous
                 # Same lock order as sale corrections/counts: branch, then receipt.
                 cursor.execute('SELECT id FROM branches WHERE id = %s FOR UPDATE;', (branch_id,))
                 cursor.execute('SELECT id FROM sale_orders WHERE id = %s FOR UPDATE;', (request.order_id,))

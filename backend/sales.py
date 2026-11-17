@@ -137,8 +137,6 @@ def list_sales(branch_id: int | None = Query(default=None, gt=0, le=2147483647),
 def create_checkout(checkout: CheckoutCreate, idempotency_key: UUID = Header(),
                     user: dict = Depends(get_current_user)):
     scoped_branch(user, checkout.branch_id)
-    if checkout.payment_method == 'credit' and user['role'] not in ('admin','manager'):
-        raise HTTPException(status_code=403, detail='Manager/Admin permission required for credit sales')
     # Canonical product ordering also gives every transaction the same lock order.
     items = sorted(checkout.items, key=lambda item: item.product_id)
     payload = checkout.model_dump(mode='json')

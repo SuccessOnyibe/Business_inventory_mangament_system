@@ -85,11 +85,35 @@ class CreditTests(unittest.TestCase):
         with self.f.connection.transaction(): self.f.connection.execute('UPDATE customers SET is_active=TRUE')
         order=self.sale().json()
         main.app.dependency_overrides[auth.get_current_user]=lambda: {'id':1,'role':'salesperson','branch_id':1}
-        self.assertEqual(self.sale().status_code,403)
-        self.assertEqual(self.pay(order).status_code,403)
+        self.assertEqual(self.sale().status_code,201)
+        self.assertEqual(self.pay(order).status_code,201)
         main.app.dependency_overrides[auth.get_current_user]=lambda: {'id':1,'role':'salesperson','branch_id':2}
         self.assertEqual(self.client.get('/credit-sales').json(),[])
         self.assertEqual(self.client.get('/credit-repayments').json(),[])
+
+    def test_salesperson_branch_checks_retries_and_reversal_permissions(self):
+        main.app.dependency_overrides[auth.get_current_user]=lambda: {'id':1,'role':'salesperson','branch_id':1}
+        key=str(uuid.uuid4())
+        body=dict(branch_id=1,items=[dict(product_id=1,quantity=1)],payment_method='credit',customer_id=self.customer)
+        first=self.post('/checkouts',body,key)
+        self.assertEqual(first.status_code,201,first.text)
+        self.assertEqual(self.post('/checkouts',body,key).json(),first.json())
+        order=first.json(); payment_key=str(uuid.uuid4())
+        paid=self.pay(order,'25',key=payment_key)
+        self.assertEqual(paid.status_code,201,paid.text)
+        self.assertEqual(self.pay(order,'25',key=payment_key).json(),paid.json())
+        self.assertEqual(self.pay(order,'76').status_code,409)
+        self.assertEqual(self.post(f"/credit-repayments/{paid.json()['id']}/void",{'reason':'Not permitted'}).status_code,403)
+        self.assertEqual(self.correction(order).status_code,403)
+        main.app.dependency_overrides[auth.get_current_user]=lambda: {'id':1,'role':'salesperson','branch_id':2}
+        self.assertEqual(self.post('/checkouts',body,key).status_code,403)
+        self.assertEqual(self.pay(order,'25',key=payment_key).status_code,403)
+        self.assertEqual(self.pay(order,'10').status_code,403)
+        self.assertEqual(self.client.get(f'/customers/{self.customer}/balance').status_code,403)
+        main.app.dependency_overrides[auth.get_current_user]=lambda: {'id':1,'role':'salesperson','branch_id':None}
+        self.assertEqual(self.post('/checkouts',body).status_code,403)
+        self.assertEqual(self.pay(order,'10').status_code,403)
+        self.assertEqual(self.f.rows('SELECT COUNT(*) FROM credit_repayments'),[(1,)])
 
     def test_later_day_collections_and_snapshot_staleness(self):
         order=self.sale().json()

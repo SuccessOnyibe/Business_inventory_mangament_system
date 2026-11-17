@@ -53,6 +53,10 @@ Legacy request keys with no owner remain reserved and cannot be replayed.
 | Create/update/deactivate products | Yes | Yes | No |
 | Receive stock and transfer stock | Yes | Yes | No |
 | Record whole-unit sales | Yes | Yes | Assigned branch |
+| Create/edit customers | Yes | Yes | Assigned branch |
+| Record credit sales and Cash/POS repayments | Yes | Yes | Assigned branch |
+| Change customer active/inactive status | Yes | Yes | No |
+| Reverse repayment entries | Yes | Yes | No |
 | Set catalogue selling prices | Yes | Yes | No |
 | Set maximum discount percentages | Yes | No | No |
 | Submit daily cash/POS counts | Yes | Yes | Assigned branch |
