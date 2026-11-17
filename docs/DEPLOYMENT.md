@@ -1,6 +1,7 @@
 # Deployment preparation
 
-The app is ready for a local release check. Public hosting is **not configured**:
+The app is ready for a local release check. Render Free + Neon Free staging preparation is documented in [FREE_HOSTING.md](FREE_HOSTING.md).
+Public hosting is **not configured**:
 there is no selected host, domain, DNS record, TLS certificate or off-device
 backup destination. Caddy and Docker are not installed on the current PC.
 No firewall ports have been opened and nothing has been published externally.

@@ -1,0 +1,33 @@
+# Free application hosting only. PostgreSQL is provisioned separately on Neon.
+services:
+  - type: web
+    name: festy-agric-staging
+    runtime: python
+    plan: free
+    branch: main
+    autoDeployTrigger: "off"
+    buildCommand: pip install -r backend/requirements.txt
+    # Keep the repository root so frontend/ and docs/ remain available.
+    startCommand: >-
+      cd backend && APP_ALLOWED_HOSTS="$RENDER_EXTERNAL_HOSTNAME,localhost,127.0.0.1"
+      python -m uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
+      --proxy-headers --forwarded-allow-ips '*' --no-access-log
+    # Liveness does not wake the database on every provider health probe.
+    healthCheckPath: /health
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        value: festy_staging
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: PGSSLMODE
+        value: require
+      - key: PGCHANNELBINDING
+        value: require
+      - key: PYTHONUNBUFFERED
+        value: "1"

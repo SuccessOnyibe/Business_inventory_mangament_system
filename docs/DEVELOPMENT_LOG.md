@@ -740,3 +740,26 @@ checks. No migrations or writes to the existing business database were needed.
 
 Browser smoke checks also passed for product creation, branch receiving, checkout,
 transfers, credit, repayments, returns, reports, adjustments, retries and mobile layout.
+
+
+## Latest Change: Free Hosting Preparation
+
+Date: 17 November 2026, Africa/Lagos (WAT).
+
+Prepared Render Free web-service blueprint with manual deploys, one worker,
+provider HTTPS proxy handling, exact service-host allowlisting, liveness health
+check and separate private Neon connection settings. Added .python-version for
+Python 3.13. The existing database connection helper and local .env are unchanged.
+No Render database or paid resource is declared.
+
+Added a private interactive staging initializer that only accepts an encrypted,
+direct Neon target named festy_staging. It refuses occupied databases and applies
+the base schema, existing migration chain, sample inventory/movements and a chosen
+Admin account in one transaction. No fixed credentials or live records are copied.
+New free-hosting guide covers accounts, sample testing, limits, separate online
+backups and a later controlled production cutover.
+
+Validation: all six new deployment/setup tests passed, including full initialization,
+rollback and preservation of existing data on the isolated PostgreSQL test server.
+Render/Neon accounts, actual remote build, HTTPS device checks and cloud backup
+configuration remain pending. No business-database writes or cloud deployment occurred.

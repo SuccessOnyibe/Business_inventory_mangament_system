@@ -52,3 +52,5 @@ The [department and POS guide](docs/CATEGORIES_AND_POS.md) covers categorized
 inventory, the supermarket-style till and optional barcode scanning.
 
 See [backend structure](docs/BACKEND_STRUCTURE.md) for workflow routers and shared helpers.
+
+[Free staging hosting](docs/FREE_HOSTING.md): Render Free + Neon Free, with sample data before production migration.
