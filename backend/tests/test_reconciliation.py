@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import main
+import auth
 import test_stock
 
 
@@ -106,7 +107,7 @@ class ReconciliationTests(unittest.TestCase):
 
     def test_salesperson_scope_and_manager_review_permissions(self):
         record = self.submit().json()
-        main.app.dependency_overrides[main.get_current_user] = lambda: {'id': 1, 'role': 'salesperson', 'branch_id': 2}
+        main.app.dependency_overrides[auth.get_current_user] = lambda: {'id': 1, 'role': 'salesperson', 'branch_id': 2}
         self.assertEqual(self.summary().status_code, 403)
         self.assertEqual(self.submit().status_code, 403)
         self.assertEqual(self.client.get('/reconciliations').json(), [])

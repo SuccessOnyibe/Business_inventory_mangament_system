@@ -94,3 +94,15 @@ repayment and refund workflows remain. Manage products is second in navigation;
 Add/Edit forms come first, with additional Inventory shortcuts and row edit
 buttons. The full 163-test suite and complete browser workflow passed. No business
 data or database schema was changed. This supersedes earlier cash-entry features.
+
+
+## Backend organization ? 17 November 2026, Africa/Lagos
+
+Workflow routes and their request models now live in separate APIRouter modules,
+following auth/accounts. main.py retains application infrastructure only. Shared
+helpers avoid circular imports. API contract comparison passed, with only new
+documentation tags; all 165 backend tests passed on disposable PostgreSQL.
+No database migration is required. See [backend structure](BACKEND_STRUCTURE.md).
+
+Browser smoke checks also passed for product creation, branch receiving, checkout,
+transfers, credit, repayments, returns, reports, adjustments, retries and mobile layout.

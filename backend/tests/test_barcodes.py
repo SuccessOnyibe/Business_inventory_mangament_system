@@ -2,6 +2,7 @@
 import os
 import unittest
 import main
+import auth
 import test_stock
 
 
@@ -31,5 +32,5 @@ class BarcodeTests(unittest.TestCase):
         body=dict(name='Equipment',category='Equipment',base_unit='piece',selling_price='10',barcode='0099')
         self.assertEqual(self.client.post('/products',json=body).status_code,201)
         self.assertEqual(self.client.post('/products',json=body).status_code,409)
-        main.app.dependency_overrides[main.get_current_user]=lambda:{'id':1,'role':'salesperson','branch_id':1}
+        main.app.dependency_overrides[auth.get_current_user]=lambda:{'id':1,'role':'salesperson','branch_id':1}
         self.assertEqual(self.client.patch('/products/1',json={'barcode':'001'}).status_code,403)

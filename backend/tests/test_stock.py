@@ -11,9 +11,9 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
@@ -27,11 +27,29 @@ import auth
 from fastapi import HTTPException, Response
 
 
+@contextmanager
+def patch_workflow_connections(replacement=None):
+    """Keep every extracted workflow on the test connection, never the live database."""
+    import importlib
+    # FastAPI can store included routers lazily, so app.routes is not a flat
+    # list of workflow endpoints. Patch each workflow explicitly.
+    modules = {'main', 'products', 'inventory', 'stock_receipts', 'stock_transfers',
+               'customers', 'sales', 'sale_corrections', 'credit', 'reconciliations',
+               'stock_adjustments', 'reports'}
+    replacement = replacement if replacement is not None else Mock()
+    with ExitStack() as stack:
+        for name in modules - {'auth', 'accounts'}:
+            module = importlib.import_module(name)
+            if hasattr(module, 'db_connection'):
+                stack.enter_context(patch.object(module, 'db_connection', replacement))
+        yield replacement
+
+
 class ValidationTests(unittest.TestCase):
     def setUp(self):
         # Stock validation tests isolate business logic; auth has its own suite.
         self.override = patch.dict(main.app.dependency_overrides, {
-            main.get_current_user: lambda: {"id": 1, "role": "manager", "username": "tester"}
+            auth.get_current_user: lambda: {"id": 1, "role": "manager", "username": "tester"}
         })
         self.override.start()
         self.addCleanup(self.override.stop)
@@ -41,13 +59,13 @@ class ValidationTests(unittest.TestCase):
             ("/stock-receipts", dict(branch_id=1, product_id=1, quantity=1)),
             ("/stock-transfers", dict(source_branch_id=1, destination_branch_id=2, product_id=1, quantity=1)),
         ):
-            with patch.object(main, "db_connection") as connection:
+            with patch_workflow_connections() as connection:
                 for headers in ({}, {"Idempotency-Key": "not-a-uuid"}):
                     self.assertEqual(TestClient(main.app).post(route, json=body, headers=headers).status_code, 422)
                 connection.assert_not_called()
 
     def test_history_rejects_invalid_filters_without_connection(self):
-        with patch.object(main, "db_connection") as connection:
+        with patch_workflow_connections() as connection:
             for query in ("branch_id=0", "product_id=-1", "limit=0", "limit=501",
                           "offset=-1", "branch_id=2147483648", "limit=abc"):
                 self.assertEqual(TestClient(main.app).get("/stock-movements?" + query).status_code, 422)
@@ -62,7 +80,7 @@ class ValidationTests(unittest.TestCase):
                                      product_id=1, quantity=1),
              ("source_branch_id", "destination_branch_id", "product_id", "quantity")),
         ):
-            with patch.object(main, "db_connection") as connection:
+            with patch_workflow_connections() as connection:
                 for field in fields:
                     for value in (0, -1, True, 1.5, "1", 2147483648, None):
                         with self.subTest(route=route, field=field, value=value):
@@ -72,7 +90,7 @@ class ValidationTests(unittest.TestCase):
                 connection.assert_not_called()
 
     def test_same_branch_never_opens_connection(self):
-        with patch.object(main, "db_connection") as connection:
+        with patch_workflow_connections() as connection:
             response = TestClient(main.app).post("/stock-transfers", headers={"Idempotency-Key": str(uuid.uuid4())}, json=dict(
                 source_branch_id=1, destination_branch_id=1, product_id=1, quantity=1))
             self.assertEqual(response.status_code, 422)
@@ -164,7 +182,7 @@ class PostgresStockTests(unittest.TestCase):
         self.connection.commit()
 
         override = patch.dict(main.app.dependency_overrides, {
-            main.get_current_user: lambda: {"id": 1, "role": "manager", "username": "tester"}
+            auth.get_current_user: lambda: {"id": 1, "role": "manager", "username": "tester"}
         })
         override.start()
         self.addCleanup(override.stop)
@@ -173,9 +191,7 @@ class PostgresStockTests(unittest.TestCase):
         def test_connection():
             yield self.connection
 
-        self.patcher = patch.object(main, "db_connection", test_connection)
-        self.patcher.start()
-        self.addCleanup(self.patcher.stop)
+        self.enterContext(patch_workflow_connections(test_connection))
         self.client = TestClient(main.app, raise_server_exceptions=False)
 
     def rows(self, sql):
@@ -436,7 +452,7 @@ class ConcurrentStockTests(unittest.TestCase):
                         return confirmed.status_code
                 return response.status_code
 
-        with patch.object(main, "db_connection", worker_connection):
+        with patch_workflow_connections(worker_connection):
             with ThreadPoolExecutor(max_workers=len(operations)) as executor:
                 return list(executor.map(request, operations))
 

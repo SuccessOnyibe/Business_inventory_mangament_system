@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import main
+import auth
 import test_stock
 
 
@@ -136,7 +137,7 @@ class OperationsTests(unittest.TestCase):
         self.assertEqual(self.report(end_date=(self.today+timedelta(days=1)).isoformat()).status_code, 422)
         self.assertEqual(self.report(start_date=(self.today-timedelta(days=366)).isoformat()).status_code, 422)
         self.assertEqual(self.report(branch_id=99).status_code, 404)
-        main.app.dependency_overrides[main.get_current_user] = lambda: {'id': 1, 'role': 'salesperson', 'branch_id': 1}
+        main.app.dependency_overrides[auth.get_current_user] = lambda: {'id': 1, 'role': 'salesperson', 'branch_id': 1}
         self.assertEqual(self.report().status_code, 403)
         self.assertEqual(self.adjustment().status_code, 403)
 
@@ -177,7 +178,7 @@ class OperationsTests(unittest.TestCase):
     def test_stock_history_is_scoped_and_reasons_are_required(self):
         self.assertEqual(self.adjustment(reason=' ').status_code, 422)
         self.assertEqual(self.adjustment().status_code, 201)
-        main.app.dependency_overrides[main.get_current_user] = lambda: {'id':1, 'role':'salesperson', 'branch_id':2}
+        main.app.dependency_overrides[auth.get_current_user] = lambda: {'id':1, 'role':'salesperson', 'branch_id':2}
         self.assertEqual(self.client.get('/stock-adjustments').json(), [])
         self.assertEqual(self.client.get('/discrepancy-events?branch_id=1').status_code, 403)
 

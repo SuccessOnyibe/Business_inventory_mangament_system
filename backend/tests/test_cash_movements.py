@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import main
+import auth
 import test_stock
 
 
@@ -16,7 +17,7 @@ class RetiredCashLedgerTests(unittest.TestCase):
     def test_removed_routes_are_unavailable_to_admin_and_salesperson(self):
         paths=('/cash-movements','/cash-movement-requests','/cash-movement-requests/1/decision','/cash-recovery-options?branch_id=1')
         for role in ('admin','salesperson'):
-            main.app.dependency_overrides[main.get_current_user]=lambda role=role:{'id':1,'role':role,'branch_id':1}
+            main.app.dependency_overrides[auth.get_current_user]=lambda role=role:{'id':1,'role':role,'branch_id':1}
             for path in paths:
                 self.assertEqual(self.client.get(path).status_code,404)
                 self.assertEqual(self.client.post(path,json={'branch_id':1,'kind':'expense','amount':'20','reason':'Retired'},headers={'Idempotency-Key':str(uuid.uuid4())}).status_code,404)

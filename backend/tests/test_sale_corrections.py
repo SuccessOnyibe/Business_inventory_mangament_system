@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import main
+import auth
 import test_stock
 
 
@@ -117,7 +118,7 @@ class SaleCorrectionTests(unittest.TestCase):
 
     def test_salesperson_cannot_approve_corrections_and_scope_applies_to_reads(self):
         record = self.correction().json()
-        main.app.dependency_overrides[main.get_current_user] = lambda: {'id': 1, 'role': 'salesperson', 'branch_id': 2}
+        main.app.dependency_overrides[auth.get_current_user] = lambda: {'id': 1, 'role': 'salesperson', 'branch_id': 2}
         self.assertEqual(self.correction().status_code, 403)
         self.assertEqual(self.client.get('/sale-corrections').json(), [])
         self.assertEqual(self.client.get(f"/sale-corrections/{record['id']}").status_code, 403)

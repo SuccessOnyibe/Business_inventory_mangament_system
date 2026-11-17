@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 
 import main
+import auth
 import test_stock
 
 
@@ -20,7 +21,7 @@ class SaleTests(unittest.TestCase):
             self.connection.execute("UPDATE products SET selling_price = 100.00, max_discount_percent = 10 WHERE id = 1")
 
     def role(self, role, branch_id=1):
-        main.app.dependency_overrides[main.get_current_user] = lambda: {
+        main.app.dependency_overrides[auth.get_current_user] = lambda: {
             'id': 1, 'username': 'tester', 'role': role, 'branch_id': branch_id}
 
     def sale(self, key=None, **changes):

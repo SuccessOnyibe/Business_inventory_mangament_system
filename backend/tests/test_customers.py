@@ -3,6 +3,7 @@ import os
 import unittest
 import uuid
 import main
+import auth
 import test_stock
 
 
@@ -49,7 +50,7 @@ class CustomerTests(unittest.TestCase):
     def test_staff_are_scoped_and_cannot_manage_customers(self):
         record = self.create().json()
         self.create(branch_id=2, name='Other branch customer')
-        main.app.dependency_overrides[main.get_current_user] = lambda: {'id':1,'role':'salesperson','branch_id':2}
+        main.app.dependency_overrides[auth.get_current_user] = lambda: {'id':1,'role':'salesperson','branch_id':2}
         self.assertEqual(len(self.client.get('/customers').json()), 1)
         self.assertEqual(self.client.get('/customers?branch_id=1').status_code, 403)
         self.assertEqual(self.create().status_code, 403)

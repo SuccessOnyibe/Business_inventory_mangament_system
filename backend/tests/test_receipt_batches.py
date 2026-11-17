@@ -7,6 +7,8 @@ import uuid
 from zoneinfo import ZoneInfo
 
 import main
+import stock_receipts
+import auth
 import test_stock
 
 
@@ -53,7 +55,7 @@ class ReceiptBatchTests(unittest.TestCase):
         first = self.fixture.receipt(request_key=key, **body)
         self.assertEqual(first.status_code, 201)
         tomorrow = datetime.now(ZoneInfo('Africa/Lagos')) + timedelta(days=1)
-        with patch.object(main, 'datetime') as clock:
+        with patch.object(stock_receipts, 'datetime') as clock:
             clock.now.return_value = tomorrow
             self.assertEqual(self.fixture.receipt(request_key=key, **body).json(), first.json())
         self.assertEqual(self.fixture.receipt(request_key=key, **{**body,'batch_number':'changed'}).status_code, 409)
@@ -72,7 +74,7 @@ class ReceiptBatchTests(unittest.TestCase):
         records = self.client.get('/stock-receipts?limit=1&offset=1').json()
         self.assertEqual(records[0]['batch_number'], 'FIRST')
         self.assertEqual(self.client.get('/stock-receipts?product_id=2').json(), [])
-        main.app.dependency_overrides[main.get_current_user] = lambda: {'id':1,'role':'salesperson','branch_id':2}
+        main.app.dependency_overrides[auth.get_current_user] = lambda: {'id':1,'role':'salesperson','branch_id':2}
         self.assertEqual(len(self.client.get('/stock-receipts').json()), 1)
         self.assertEqual(self.client.get('/stock-receipts?branch_id=1').status_code, 403)
         self.assertEqual(self.fixture.receipt().status_code, 403)

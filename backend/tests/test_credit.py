@@ -5,6 +5,7 @@ import unittest
 import uuid
 from zoneinfo import ZoneInfo
 import main
+import auth
 import test_stock
 
 
@@ -83,10 +84,10 @@ class CreditTests(unittest.TestCase):
         self.assertEqual(self.sale().status_code,409)
         with self.f.connection.transaction(): self.f.connection.execute('UPDATE customers SET is_active=TRUE')
         order=self.sale().json()
-        main.app.dependency_overrides[main.get_current_user]=lambda: {'id':1,'role':'salesperson','branch_id':1}
+        main.app.dependency_overrides[auth.get_current_user]=lambda: {'id':1,'role':'salesperson','branch_id':1}
         self.assertEqual(self.sale().status_code,403)
         self.assertEqual(self.pay(order).status_code,403)
-        main.app.dependency_overrides[main.get_current_user]=lambda: {'id':1,'role':'salesperson','branch_id':2}
+        main.app.dependency_overrides[auth.get_current_user]=lambda: {'id':1,'role':'salesperson','branch_id':2}
         self.assertEqual(self.client.get('/credit-sales').json(),[])
         self.assertEqual(self.client.get('/credit-repayments').json(),[])
 

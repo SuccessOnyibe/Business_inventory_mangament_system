@@ -6,6 +6,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import main
+import auth
 import test_stock
 
 
@@ -87,7 +88,7 @@ class CheckoutTests(unittest.TestCase):
 
     def test_receipts_and_history_follow_branch_scope(self):
         record = self.checkout().json()
-        main.app.dependency_overrides[main.get_current_user] = lambda: {'id': 1, 'role': 'salesperson', 'branch_id': 2}
+        main.app.dependency_overrides[auth.get_current_user] = lambda: {'id': 1, 'role': 'salesperson', 'branch_id': 2}
         self.assertEqual(self.client.get(f"/checkouts/{record['id']}").status_code, 403)
         self.assertEqual(self.client.get('/checkouts').json(), [])
         self.assertEqual(self.checkout().status_code, 403)

@@ -50,3 +50,5 @@ awake and the current user is signed in.
 
 The [department and POS guide](docs/CATEGORIES_AND_POS.md) covers categorized
 inventory, the supermarket-style till and optional barcode scanning.
+
+See [backend structure](docs/BACKEND_STRUCTURE.md) for workflow routers and shared helpers.

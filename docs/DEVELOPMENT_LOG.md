@@ -713,3 +713,30 @@ Validation: three frontend/static/markup tests; JavaScript syntax; 55 browser
 page/viewport layout checks; browser workflow checks including connected product
 creation, separate branch balances, receiving confirmation and stock navigation.
 All business test writes use a disposable PostgreSQL database, never live data.
+
+
+## Latest Change: Workflow Routers
+
+Date: 17 November 2026, Africa/Lagos (WAT).
+
+Reduced backend/main.py from 1,965 lines to 85 lines of application setup,
+router registration, security middleware, home/health probes and frontend hosting.
+Extracted products, inventory/branches/movements, receiving, transfers, sales,
+corrections, customers, credit, reconciliations, adjustments and reports into
+APIRouters matching the existing auth/accounts pattern. Request models remain
+with their workflow. Small shared retry, receipt, credit-total and reconciliation
+helpers prevent router-to-router imports and circular dependencies.
+
+Preserved all 84 existing functions/models, SQL, locks, transactions, dependency
+functions and permissions. Compared OpenAPI before/after: paths, methods,
+operation IDs, request/response schemas and statuses are unchanged; only workflow
+tags were added for API documentation. Database fixtures now patch every workflow
+connection explicitly, and clock patches target the receiving module. Added two
+router registration/discovery tests and docs/BACKEND_STRUCTURE.md.
+
+Validation: all 165 backend tests passed against the dedicated disposable
+PostgreSQL database, including rollback, idempotency, authentication and concurrency
+checks. No migrations or writes to the existing business database were needed.
+
+Browser smoke checks also passed for product creation, branch receiving, checkout,
+transfers, credit, repayments, returns, reports, adjustments, retries and mobile layout.
