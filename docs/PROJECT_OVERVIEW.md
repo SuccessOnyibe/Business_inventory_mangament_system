@@ -1,4 +1,4 @@
-# Family Business Inventory Management System
+# FESTY AGRIC SERVICES Inventory Management System
 
 ## 1. Project Description
 

@@ -1,0 +1,9 @@
+# Replace the example hostname with a domain you control and point DNS at the server.
+inventory.example.com {
+    reverse_proxy 127.0.0.1:8001
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy same-origin
+    }
+}

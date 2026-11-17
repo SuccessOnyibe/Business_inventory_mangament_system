@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>FESTY AGRIC SERVICES · Stock & sales</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <section id="login-screen" class="login-layout">
+    <div class="login-story"><div class="brand"><span class="brand-mark">FA</span> FESTY AGRIC SERVICES</div><div><p class="eyebrow">A CLEARER WORKING DAY</p><h1>Our branches.<br>Our stock.<br>One place.</h1><p>Keep the shelves accounted for, deliveries confirmed, and every sale recorded.</p></div><p class="small">Veterinary & poultry supplies · Delta State</p></div>
+    <div class="login-panel"><form id="login-form" class="login-card" method="post"><p class="eyebrow">WELCOME BACK</p><h2>Sign in to your workspace</h2><p class="muted">Use the account created by your administrator.</p><label>Username<input name="username" autocomplete="username" required minlength="3" maxlength="50"></label><label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label><button class="primary" type="submit" disabled>Sign in <span aria-hidden="true">→</span></button><p id="login-error" class="error" role="alert"></p><p class="small muted">Your access follows your role and assigned branch.</p></form></div>
+  </section>
+
+  <div id="workspace" class="workspace" hidden>
+    <aside class="sidebar"><div class="brand"><span class="brand-mark">FA</span><span>FESTY AGRIC<br>SERVICES</span></div><p class="nav-caption">WORKSPACE</p><nav aria-label="Main navigation"><button data-view="inventory" class="nav-item selected">Inventory</button><button data-view="receiving" class="nav-item manager-only">Add stock</button><button data-view="products" class="nav-item">Manage products</button><button data-view="sales" class="nav-item">Sales</button><button data-view="adjustments" class="nav-item">Stock adjustments</button><button data-view="reports" class="nav-item manager-only">Reports &amp; CSV</button><button data-view="reconciliations" class="nav-item">Daily reconciliation</button><button data-view="transfers" class="nav-item">Transfers</button><button data-view="credit" class="nav-item">Customer credit</button><button data-view="customers" class="nav-item">Customers</button><button data-view="accounts" class="nav-item admin-only">Accounts</button></nav><div class="sidebar-footer"><span class="live-dot"></span> Connected to your inventory<p>All dates shown in Lagos time</p></div></aside>
+    <main class="main">
+      <header class="topbar"><span id="today"></span><div class="account-menu"><span id="profile"></span><button id="logout" class="text-button">Sign out</button></div></header>
+      <div class="page-heading"><div><p class="eyebrow">BUSINESS AT A GLANCE</p><h1 id="page-title">Inventory</h1><p id="page-subtitle" class="muted">Know what is available at each branch.</p></div><div class="toolbar"><label class="inline-label" for="branch-filter">Viewing<select id="branch-filter"></select></label><button id="refresh" class="secondary">Refresh</button></div></div>
+      <div id="notice" role="status" aria-live="polite" hidden></div>
+      <div id="unassigned" class="card" hidden>Ask an Admin to assign your branch before using the workspace.</div>
+
+      <section id="view-inventory" class="view">
+        <div class="stats"><article class="stat"><p>Products stocked</p><strong id="stocked-count">—</strong><span>in the selected branches</span></article><article class="stat"><p>In transit in current list</p><strong id="transit-count">—</strong><span>from the loaded transfer-history page</span></article><article class="stat"><p>Out of stock</p><strong id="empty-count">—</strong><span>recorded balances at zero</span></article></div>
+        <div class="card"><div class="card-heading"><div><h2>Available stock</h2><p class="muted">Goods in transit are not available for sale.</p></div><div class="row-actions manager-only product-shortcuts"><button type="button" class="primary" data-stock-action="open">Add stock to a branch</button><button type="button" class="secondary" data-product-action="add">Create new product</button><button type="button" class="secondary" data-product-action="edit">Edit product</button></div></div><div class="catalog-toolbar"><label>Find stock<input id="inventory-search" type="search" placeholder="Search product, barcode or category"></label></div><div id="inventory-categories" class="category-tabs" role="group" aria-label="Inventory categories"></div><div id="inventory-table"></div></div>
+
+        <details class="card"><summary>Delivery history and batch labels</summary><p class="muted">Quantities received are historical deliveries, not stock remaining per batch. Unknown labels are not assumed safe or unexpired. Sales and transfers currently use total product stock.</p><div id="receipts-table" class="table-wrap"></div><div class="pager"><button type="button" class="secondary" data-page="receipts:-1">Previous</button><span id="receipts-page">Page 1</span><button type="button" class="secondary" data-page="receipts:1">Next</button></div></details>
+      </section>
+
+      <section id="view-receiving" class="view manager-only" hidden>
+        <div class="card receiving-card">
+          <h2>Add delivered goods to a branch</h2>
+          <p class="muted">Choose where the goods arrived, select the product, then enter how many arrived. Only that branch's stock will increase.</p>
+          <form id="receipt-form" class="form-grid receiving-form">
+            <label>1. Branch receiving the goods<select name="branch_id" class="branch-choice" required></select></label>
+            <label>2. Product delivered<select name="product_id" class="active-product-choice" required></select></label>
+            <div><button id="new-receiving-product" type="button" class="secondary">Product not in the list? Create it here</button></div>
+            <label><span id="receipt-quantity-label">3. Quantity to add</span><input name="quantity" type="number" min="1" max="2147483647" step="1" required></label>
+            <p id="receipt-summary" class="hint" aria-live="polite">Choose the receiving branch and product above.</p>
+            <details class="full"><summary>Batch, expiry and notes (optional)</summary><div class="form-grid">
+              <label>Batch number<input name="batch_number" maxlength="100"></label>
+              <label>Expiry date<input name="expires_on" type="date"></label>
+              <label class="full">Notes<input name="notes" maxlength="500"></label>
+              <p class="hint full">Copy labels from this delivery when known. Use a separate entry for each batch or expiry date.</p>
+            </div></details>
+            <div class="form-actions"><button class="primary" type="submit">Add stock to branch</button></div>
+          </form>
+        </div>
+        <div id="receipt-result" class="card receiving-card" hidden>
+          <h2>Stock saved</h2><p id="receipt-result-text"></p>
+          <button id="view-received-branch" type="button" class="primary">View this branch's stock</button>
+        </div>
+      </section>
+
+      <!-- Keep the till, receipt and histories inside this section and main. -->
+      <section id="view-sales" class="view" hidden>
+        <div class="pos-layout">
+          <div class="card pos-catalogue">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">
+                  POINT OF SALE
+                </p>
+                <h2>
+                  Find products
+                </h2>
+              </div>
+              <span id="pos-basket-count" class="badge">
+                0 items
+              </span>
+            </div>
+            <label class="pos-search-label">
+              Search products or scan a barcode
+              <input id="pos-search" type="search" autocomplete="off" placeholder="Product name, barcode or item number">
+            </label>
+            <div id="pos-categories" class="category-tabs" role="group" aria-label="Checkout categories">
+            </div>
+            <p id="pos-stock-hint" class="muted">
+            </p>
+            <div id="pos-products" class="pos-product-grid">
+            </div>
+          </div>
+          <div class="card pos-checkout">
+            <h2>
+              Current sale
+            </h2>
+            <p class="muted">
+              Choose a branch, add products to the basket, then complete the sale.
+            </p>
+            <form id="sale-form" class="form-grid">
+              <div class="checkout-fields">
+                <label>
+                  Branch
+                  <select name="branch_id" class="branch-choice" required>
+                  </select>
+                </label>
+                <details id="manual-sale-entry" class="manual-sale-entry full">
+                  <summary>
+                    Manual item / quantity / price
+                  </summary>
+                  <div class="manual-sale-fields">
+                    <label>
+                      Product
+                      <select name="product_id" id="sale-product" required>
+                      </select>
+                    </label>
+                    <label>
+                      Quantity
+                      <input name="quantity" type="number" min="1" max="2147483647" step="1" required value="1">
+                    </label>
+                    <label>
+                      Unit price (₦)
+                      <input name="unit_price" id="sale-price" type="number" min="0" step="0.01" required>
+                    </label>
+                    <p id="price-policy" class="hint full">
+                    </p>
+                    <div class="full">
+                      <button id="add-sale-item" class="secondary" type="button">
+                        Add item
+                      </button>
+                    </div>
+                  </div>
+                </details>
+                <div id="cart-table" class="table-wrap full">
+                </div>
+              </div>
+              <div class="checkout-footer">
+                <div class="checkout-payment-fields">
+                  <label>
+                    Payment method
+                    <select name="payment_method" required>
+                      <option value="">
+                        Choose payment method
+                      </option>
+                      <option value="cash">
+                        Cash
+                      </option>
+                      <option value="pos">
+                        POS terminal
+                      </option>
+                      <option value="credit" class="manager-only">
+                        Credit - full amount owed
+                      </option>
+                    </select>
+                  </label>
+                  <label id="credit-customer-label" class="manager-only" hidden>
+                    Registered credit customer
+                    <select name="customer_id" id="credit-customer" disabled>
+                    </select>
+                  </label>
+                  <label>
+                    Customer (optional)
+                    <input name="customer_name" maxlength="150" autocomplete="off">
+                  </label>
+                  <label class="full">
+                    Notes (optional)
+                    <input name="notes" maxlength="500">
+                  </label>
+                </div>
+                <div class="sale-total full">
+                  <span>
+                    Purchase total
+                  </span>
+                  <strong id="sale-total">
+                    ₦0.00
+                  </strong>
+                </div>
+                <div class="form-actions">
+                  <button class="primary" type="submit">
+                    Complete sale
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="card receipt-preview">
+          <p class="eyebrow">
+            LATEST RECEIPT
+          </p>
+          <h2 id="receipt-preview-title">
+            Sale recorded
+          </h2>
+          <div id="sale-receipt">
+            <p class="muted">
+              Your saved receipt will appear here, including items, payment method, and date.
+            </p>
+          </div>
+          <button id="print-latest" type="button" class="secondary" disabled>
+            Print receipt
+          </button>
+        </div>
+        <details id="correction-panel" class="card manager-only">
+          <summary>
+            Void / return a sale
+          </summary>
+          <p class="muted">
+            Choose Correct sale in purchase history. Voids restore the entire untouched sale; returns restore only items marked resellable. Record the actual refund/reversal method.
+          </p>
+          <form id="correction-form" class="form-grid" hidden>
+            <input name="receipt_type" type="hidden">
+            <input name="receipt_id" type="hidden">
+            <p id="correction-receipt-label" class="full">
+            </p>
+            <label>
+              Correction type
+              <select id="correction-kind" name="kind">
+                <option value="return">
+                  Customer return
+                </option>
+                <option value="void">
+                  Void entire sale
+                </option>
+              </select>
+            </label>
+            <label>
+              Refund / reversal method
+              <select name="refund_method" required>
+                <option value="">
+                  Choose method
+                </option>
+                <option value="cash">
+                  Cash
+                </option>
+                <option value="pos">
+                  POS terminal
+                </option>
+              </select>
+            </label>
+            <div id="correction-items" class="table-wrap full">
+            </div>
+            <label class="full">
+              Required reason
+              <textarea name="reason" required maxlength="1000" rows="3">
+              </textarea>
+            </label>
+            <p class="hint full">
+              Credit corrections reduce unpaid debt first; choose the actual refund method if a paid portion must be returned. Use the original receipt prices. Do not restock damaged, expired, or otherwise unsellable goods. A Manager/Admin submitting this form approves and records the correction.
+            </p>
+            <div class="form-actions">
+              <button type="submit" class="primary">
+                Approve correction
+              </button>
+            </div>
+          </form>
+        </details>
+        <div class="card">
+          <div class="card-heading">
+            <h2>
+              Purchase history
+            </h2>
+            <div class="pager">
+              <button data-page="sales:-1" class="secondary">
+                Previous
+              </button>
+              <span id="sales-page">
+              </span>
+              <button data-page="sales:1" class="secondary">
+                Next
+              </button>
+            </div>
+          </div>
+          <div id="sales-table" class="table-wrap">
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-heading">
+            <h2>
+              Voids
+              &
+              returns
+            </h2>
+            <div class="pager">
+              <button data-page="corrections:-1" class="secondary">
+                Previous
+              </button>
+              <span id="corrections-page">
+              </span>
+              <button data-page="corrections:1" class="secondary">
+                Next
+              </button>
+            </div>
+          </div>
+          <div id="corrections-table" class="table-wrap">
+          </div>
+        </div>
+      </section>
+
+      <section id="view-reconciliations" class="view" hidden>
+        <div class="split"><div class="card"><h2>Submit a daily count</h2><p class="muted">Count actual customer payments for the business day. Expected Cash/POS includes sales and credit repayments, less refunds.</p><form id="reconciliation-form" class="form-grid"><label>Branch<select id="reconciliation-branch" name="branch_id" class="branch-choice" required></select></label><label>Business date · Lagos<input id="reconciliation-date" name="business_date" type="date" required></label><label>Actual cash collections (₦)<input name="actual_cash" type="number" step="0.01" required></label><label>Actual POS total (₦)<input name="actual_pos" type="number" step="0.01" required></label><label class="full">Notes<input name="notes" maxlength="2000" placeholder="Explain any shortage or excess"></label><div class="form-actions"><button class="primary" type="submit">Submit daily count</button></div></form></div><div class="card"><p class="eyebrow">EXPECTED CUSTOMER COLLECTIONS</p><h2>Daily summary</h2><div id="reconciliation-summary"><p class="muted">Choose a branch and business date.</p></div><p class="small muted">Each submission keeps its original totals. New sales, repayments, refunds or payment reversals require updated counts before review.</p></div></div>
+        <div class="card"><div class="card-heading"><div><h2>Submissions & reviews</h2><p class="muted">Negative differences are shortages; positive differences are excesses. Older revisions remain visible.</p></div><div class="pager"><button data-page="reconciliations:-1" class="secondary">Previous</button><span id="reconciliations-page"></span><button data-page="reconciliations:1" class="secondary">Next</button></div></div><div id="reconciliations-table" class="table-wrap"></div></div>
+        <details id="discrepancy-panel" class="card manager-only"><summary>Investigate / resolve a difference</summary><p class="muted">Choose Investigate / resolve on a latest count below. Decisions preserve the original shortage/excess and do not move money.</p><form id="discrepancy-form" class="form-grid" hidden><input name="reconciliation_id" type="hidden"><p id="discrepancy-label" class="full"></p><label>Action<select name="action" id="discrepancy-action"><option value="investigate">Investigate</option><option value="resolve">Resolve</option><option value="reopen">Reopen</option></select></label><label>Responsible staff<select name="responsible_user_id" required></select></label><label class="full">Explanation<textarea name="explanation" required maxlength="2000" rows="3"></textarea></label><label id="resolution-action-label" class="full" hidden>Resolution action taken<textarea name="resolution_action" maxlength="2000" rows="3"></textarea></label><div class="form-actions"><button class="primary" type="submit">Save decision</button></div></form></details>
+        <div class="card"><div class="card-heading"><h2>Investigation &amp; resolution history</h2><div class="pager"><button data-page="events:-1" class="secondary">Previous</button><span id="events-page"></span><button data-page="events:1" class="secondary">Next</button></div></div><div id="events-table" class="table-wrap"></div></div>
+
+      </section>
+
+
+
+      <section id="view-adjustments" class="view" hidden>
+        <details class="card manager-only" id="adjustment-panel"><summary>Record an approved stock adjustment</summary><p class="muted">Read the current balance before counting. A changed balance blocks submission until you refresh and recount. Matching counts are recorded without changing stock.</p><form id="adjustment-form" class="form-grid"><label>Branch<select name="branch_id" class="branch-choice" required></select></label><label>Product<select name="product_id" class="all-product-choice" required></select></label><label>Balance loaded<input name="expected_quantity" type="number" readonly></label><div class="balance-action"><button type="button" id="load-adjustment-balance" class="secondary">Read balance</button></div><label>Adjustment type<select name="mode" id="adjustment-mode"><option value="physical_count">Physical count</option><option value="damage">Damaged stock</option><option value="expiry">Expired stock</option><option value="correction">Signed correction</option></select></label><label><span id="adjustment-amount-label">Counted quantity</span><input name="amount" type="number" min="0" max="2147483647" step="1" required></label><label class="full">Required reason<textarea name="reason" required maxlength="1000" rows="3"></textarea></label><div class="form-actions"><button type="submit" class="primary">Record adjustment</button></div></form></details>
+        <div class="card"><div class="card-heading"><h2>Stock adjustment history</h2><div class="pager"><button data-page="adjustments:-1" class="secondary">Previous</button><span id="adjustments-page"></span><button data-page="adjustments:1" class="secondary">Next</button></div></div><div id="adjustments-table" class="table-wrap"></div></div>
+      </section>
+      <section id="view-reports" class="view manager-only" hidden>
+        <div class="card"><h2>Financial report</h2><p class="muted">Gross sales, refund-day payouts, net totals, and current count differences. Unknown payment methods stay separate.</p><form id="report-form" class="form-grid"><label>From date ? Lagos<input name="start_date" type="date" required></label><label>To date ? Lagos<input name="end_date" type="date" required></label><label>Branch<select name="branch_id" class="report-branch-choice"></select></label><div class="form-actions"><button type="submit" class="primary">Load report</button><button type="button" id="export-report" class="secondary" disabled>Download CSV</button></div></form><p id="report-generated" class="small muted"></p></div>
+        <div class="stats"><article class="stat"><p>Gross sales</p><strong id="report-gross">?</strong><span>including unclassified payments</span></article><article class="stat"><p>Net sales after refunds</p><strong id="report-net">?</strong><span>sales less recorded refunds/reversals</span></article><article class="stat"><p>Unresolved differences</p><strong id="report-unresolved">?</strong><span id="report-missing">Load a report</span></article></div>
+        <div class="card"><h2>Branch / date detail</h2><p class="muted">Count differences belong to the latest submitted snapshot. Out-of-date rows need a fresh count. A resolved explanation does not erase its amount.</p><div id="report-table" class="table-wrap"></div></div>
+      </section>
+
+      <section id="view-transfers" class="view" hidden>
+        <details class="card manager-only"><summary>Dispatch stock to another branch</summary><p class="muted">Stock leaves the source now and becomes available at the destination after confirmation.</p><form id="transfer-form" class="form-grid"><label>From branch<select name="source_branch_id" class="branch-choice" required></select></label><label>To branch<select name="destination_branch_id" class="branch-choice" required></select></label><label>Product<select name="product_id" class="active-product-choice" required></select></label><label>Quantity<input name="quantity" type="number" min="1" max="2147483647" step="1" required></label><label class="full">Notes<input name="notes" maxlength="500"></label><div class="form-actions"><button class="primary" type="submit">Dispatch transfer</button></div></form></details>
+        <div class="card"><div class="card-heading"><div><h2>Branch deliveries</h2><p class="muted">Confirm only after the goods have arrived.</p></div><div class="pager"><button data-page="transfers:-1" class="secondary">Previous</button><span id="transfers-page"></span><button data-page="transfers:1" class="secondary">Next</button></div></div><div id="transfers-table" class="table-wrap"></div></div>
+      </section>
+
+      <section id="view-products" class="view" hidden>
+        <div class="split manager-only"><div class="card"><h2>Create a new product</h2><p class="muted">Save its name, category and price here. Add the delivered quantity using Add stock.</p><div id="product-receiving-context" class="hint" hidden><p id="product-receiving-text"></p><button id="cancel-product-receiving" class="secondary" type="button">Back to adding stock</button></div><form id="product-form" class="form-grid"><label class="full">Product name<input name="name" required maxlength="150"></label><label>Category<select name="category" class="category-choice" required><option value="">Choose category</option><option value="Feed">Feeds</option><option value="Medicine">Veterinary medication</option><option value="Equipment">Poultry equipment</option><option value="Other">Other products</option></select></label><label>Barcode (optional)<input name="barcode" maxlength="64" placeholder="Scan or enter printed code" autocomplete="off"></label><label>Base unit<input name="base_unit" required maxlength="30" placeholder="bag, vial, sachet, piece"></label><label>Selling price (₦)<input name="selling_price" type="number" min="0.01" step="0.01" required></label><label class="admin-only">Maximum discount (%)<input name="max_discount_percent" type="number" min="0" max="100" step="0.01" value="0" required></label><div class="form-actions"><button class="primary" type="submit">Save product details</button></div></form><div id="created-product-next" class="hint" hidden><p>Product details saved. Ready to enter its delivered quantity?</p><button id="stock-created-product" type="button" class="secondary">Add stock for this product</button></div></div>
+        <div class="card">
+          <h2>Edit product</h2>
+          <p class="muted">Choose a product to load its name, category, price and barcode.</p>
+          <form id="price-form" class="form-grid">
+            <label class="full">Product to edit<select name="product_id" id="edit-product" required></select></label>
+            <label class="full">Product name<input name="name" required maxlength="150"></label>
+            <label>Category<select name="category" class="category-choice" required></select></label>
+            <label>Barcode (optional)<input name="barcode" maxlength="64" placeholder="Scan or enter printed code" autocomplete="off"></label>
+            <label>Base unit<input name="base_unit" required maxlength="30"></label>
+            <label>Selling price (NGN)<input name="selling_price" type="number" min="0.01" step="0.01"></label>
+            <label class="admin-only">Maximum discount (%)<input name="max_discount_percent" type="number" min="0" max="100" step="0.01" value="0" required></label>
+            <label>Status<select name="is_active"><option value="true">Active</option><option value="false">Inactive</option></select></label>
+            <div class="form-actions"><button class="primary" type="submit">Save changes</button></div>
+          </form>
+        </div>
+        </div>
+        <div class="card"><div class="card-heading"><div><h2>Product catalogue</h2><p class="muted">Shared items, prices, and approved discount limits.</p></div><label class="search-label">Find a product<input id="product-search" type="search" placeholder="Search products…"></label></div><div id="product-categories" class="category-tabs" role="group" aria-label="Catalogue categories"></div><div id="products-table"></div></div>
+      </section>
+
+      <section id="view-customers" class="view" hidden>
+        <div class="card"><h2>Customer directory</h2><p class="muted">Customer contacts and current credit balances. Credit invoices and repayments are in Customer credit. Check for an existing customer before adding another record.</p><div id="customers-table" class="table-wrap"></div><div class="pager"><button type="button" class="secondary" data-page="customers:-1">Previous</button><span id="customers-page">Page 1</span><button type="button" class="secondary" data-page="customers:1">Next</button></div></div>
+        <div class="split manager-only"><div class="card"><h2>Add customer</h2><form id="customer-form" class="form-grid"><label>Branch<select name="branch_id" class="branch-choice" required></select></label><label>Name<input name="name" required maxlength="150"></label><label>Phone (optional)<input name="phone" type="tel" maxlength="40"></label><label class="full">Notes (optional)<textarea name="notes" maxlength="1000" rows="2"></textarea></label><div class="form-actions"><button class="primary" type="submit">Add customer</button></div></form></div>
+        <div class="card"><h2>Update customer</h2><form id="customer-update-form" class="form-grid" hidden><input type="hidden" name="customer_id"><input type="hidden" name="expected_version"><p id="customer-edit-label" class="full"></p><label>Name<input name="name" required maxlength="150"></label><label>Phone (optional)<input name="phone" type="tel" maxlength="40"></label><label>Status<select name="is_active"><option value="true">Active</option><option value="false">Inactive</option></select></label><label class="full">Notes (optional)<textarea name="notes" maxlength="1000" rows="2"></textarea></label><p class="hint full">Deactivate records instead of deleting them. Branch assignment stays fixed to preserve customer identity.</p><div class="form-actions"><button class="primary" type="submit">Save customer</button></div></form></div></div>
+      </section>
+      <section id="view-credit" class="view" hidden>
+        <div class="card"><h2>Credit sales and outstanding debts</h2><p class="muted">Each invoice starts fully owed. Repayments are actual Cash/POS collected later. Managers/Admins record credit sales and repayments.</p><div id="credit-table" class="table-wrap"></div><div class="pager"><button class="secondary" data-page="creditSales:-1">Previous</button><span id="creditSales-page"></span><button class="secondary" data-page="creditSales:1">Next</button></div></div>
+        <div class="card manager-only"><h2>Record repayment</h2><form id="repayment-form" class="form-grid"><label>Credit invoice<select name="order_id" id="repayment-order" required></select></label><label>Amount (NGN)<input name="amount" type="number" min="0.01" step="0.01" required></label><label>Actual payment method<select name="payment_method" required><option value="cash">Cash</option><option value="pos">POS terminal</option></select></label><label>Notes<input name="notes" maxlength="1000"></label><div class="form-actions"><button class="primary" type="submit">Record repayment</button></div></form></div>
+        <div class="card"><h2>Repayment receipts and reversals</h2><p class="muted">A reversal corrects a mistaken payment entry on today's Lagos date; it preserves the original record.</p><div id="repayments-table" class="table-wrap"></div><div class="pager"><button class="secondary" data-page="repayments:-1">Previous</button><span id="repayments-page"></span><button class="secondary" data-page="repayments:1">Next</button></div></div>
+        <div class="card manager-only"><form id="repayment-void-form" class="form-grid" hidden><input name="repayment_id" type="hidden"><p id="repayment-void-label" class="full"></p><label class="full">Required reversal reason<textarea name="reason" maxlength="1000" required></textarea></label><div class="form-actions"><button class="primary" type="submit">Reverse repayment</button></div></form></div>
+      </section>
+      <section id="view-accounts" class="view admin-only" hidden>
+        <div class="card"><h2>Team accounts</h2><p class="muted">Salespersons need an assigned branch. The last active Admin is protected.</p><div id="accounts-table" class="table-wrap"></div></div>
+        <div class="split"><div class="card"><h2>Create an account</h2><form id="account-form" class="form-grid"><label>Username<input name="username" required minlength="3" maxlength="50" pattern="[a-z0-9][a-z0-9_.-]*" autocomplete="off"></label><label>Password<input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label><label>Role<select name="role"><option value="salesperson">Salesperson</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label><label>Assigned branch<select name="branch_id" class="optional-branch-choice"></select></label><div class="form-actions"><button class="primary" type="submit">Create account</button></div></form></div><div class="card"><h2>Update an account</h2><form id="account-update-form" class="form-grid"><label class="full">Account<select name="user_id" id="edit-account" required></select></label><label>Role<select name="role"><option value="salesperson">Salesperson</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label><label>Assigned branch<select name="branch_id" class="optional-branch-choice"></select></label><label>Status<select name="is_active"><option value="true">Active</option><option value="false">Inactive</option></select></label><div class="form-actions"><button class="primary" type="submit">Update account</button></div></form></div></div>
+      </section>
+      <footer>FESTY AGRIC SERVICES <span>Dates & times · Africa/Lagos (WAT)</span></footer>
+    </main>
+  </div>
+  <section id="print-receipt" hidden aria-label="Printable sales receipt"><div id="receipt-paper"></div></section>
+</body>
+</html>
