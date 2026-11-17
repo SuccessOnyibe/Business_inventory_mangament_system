@@ -840,3 +840,7 @@ failure/recovery, revoked session removal, logout surviving refresh and a saved
 sale retry after refresh without a duplicate purchase. Existing checkout, credit,
 repayment, transfer, return, report and mobile flows also passed. The test runner
 now waits for API liveness instead of racing a fixed startup delay.
+
+Deployed fix commit 3d08080 to Free staging. A separate Chrome profile verified
+real HTTPS login, refresh preserving the identical token, and logout remaining
+signed out after another refresh. No stock or financial transactions were submitted.

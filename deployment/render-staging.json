@@ -7,8 +7,8 @@
   "plan": "free",
   "source": "direct_cli",
   "auto_deploy": false,
-  "deploy_id": "dep-dbu7a7mc6qcc73fc0fdg",
+  "deploy_id": "dep-dbu7jk2fngtc73b1i1h0",
   "status": "live",
   "verified_date": "2026-11-17",
-  "deployed_commit": "b2d1fe50426dbebd52c374c9e147ec96841eec70"
+  "deployed_commit": "3d0808044cf807fe796322515943dce422d4f30e"
 }

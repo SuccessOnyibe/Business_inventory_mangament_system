@@ -133,3 +133,11 @@ reads, unauthorized access rejection and logout passed. No stock/financial test
 transactions were sent. Login details are in the owner's existing private local
 staging-login.txt file. Verify owner workflows/devices at each branch before any
 production migration. Cloud backups/restore validation remain a go-live requirement.
+
+
+## Session refresh fix live ? 17 November 2026, Africa/Lagos
+
+Staging commit 3d08080 now preserves tab login through refresh, validates the saved
+session on startup, and clears it on logout or server rejection. Eight-hour expiry
+is unchanged. Isolated browser regression checks and deployed Chrome login/refresh/
+logout checks passed. Existing open pages need one refresh and sign-in to adopt it.
