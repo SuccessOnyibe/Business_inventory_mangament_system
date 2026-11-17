@@ -43,3 +43,6 @@ body[data-view="sales"] .topbar{min-height:64px}body[data-view="sales"] .page-he
 
 /* Branch stock entry is a visible, single-column task with one branch selector. */
 .receiving-card{max-width:820px}.receiving-form{grid-template-columns:minmax(0,1fr);gap:20px}.receiving-form input[name="quantity"]{max-width:280px}.receiving-form details summary{font-size:.86rem}.receiving-card p{line-height:1.6}.receiving-card #receipt-result-text{overflow-wrap:anywhere}body[data-view="receiving"] .page-heading .inline-label,body[data-view="products"] .page-heading .inline-label{display:none}
+
+/* Keep live search choices directly below the input, including on small screens. */
+.pos-search-box{position:relative;min-width:0}.pos-suggestions{position:absolute;top:100%;left:0;right:0;z-index:5;max-height:300px;overflow-y:auto;background:white;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 20px #183e2926;padding:5px}.pos-suggestion{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;background:white;color:var(--ink);border:0;border-radius:5px;padding:11px 12px;overflow-wrap:anywhere}.pos-suggestion:hover,.pos-suggestion[aria-selected="true"]{background:var(--green-light)}.pos-suggestions>p{padding:10px;margin:0}.pos-suggestion strong{font-size:.9rem}.pos-suggestion span{line-height:1.4}

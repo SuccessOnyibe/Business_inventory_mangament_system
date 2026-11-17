@@ -118,3 +118,7 @@ are retained in the records. Historical opening debts are not added by this chan
 
 Only Managers/Admins can deactivate/reactivate customers; salesperson contact edits
 keep the existing status, so an inactive customer cannot be re-enabled by staff.
+
+In Sales, type the first few letters into search and click a matching product
+from the list immediately below it. Prices and selected-branch availability are
+shown there. Arrow keys plus Enter also select a product; Escape closes the list.

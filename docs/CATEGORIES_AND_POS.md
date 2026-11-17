@@ -76,3 +76,18 @@ sales or historical receipt snapshots.
 Tests cover barcode validation, uniqueness and rollback, permissions, department
 separation, product buttons, scanner input, checkout/retry/credit/returns and
 desktop/mobile layout, with business writes restricted to isolated databases.
+
+
+## Instant Sales search suggestions
+
+Click the Sales search box or start typing to see up to 12 active matching
+products directly below it. Matches are alphabetical and show price/unit plus
+available stock for the selected branch. Partial names, categories, barcodes and
+item numbers use the loaded catalogue, with no network request per keystroke.
+Typing searches across categories so an old category selection cannot hide a match.
+
+Click a suggestion to add one unit, or use Arrow Up/Down and Enter. Escape/clicking
+outside closes the list. Enter on a partial name with several matches highlights
+a choice instead of reporting a barcode error or silently adding a random product.
+Exact barcode/scanner matches still work. Choose a sale branch before adding;
+normal pricing, stock and pending-request protections remain in force.

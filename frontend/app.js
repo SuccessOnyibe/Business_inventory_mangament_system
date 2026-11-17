@@ -78,7 +78,7 @@ function saveSessionToken(token) {
 }
 function showLogin(clearSavedSession = true) {
   if(clearSavedSession) { try { sessionStorage.removeItem(SESSION_KEY); } catch { /* Storage can be blocked. */ } }
-  state.token = null; state.user = null;
+  state.token = null; state.user = null; hidePosSuggestions();
   state.receivingDraft=null; state.lastReceipt=null; state.createdProductForStock=null;
   for(const id of ['receipt-result','product-receiving-context','created-product-next']) $('#'+id).hidden=true;
   // Clear the previous user's visible data when switching accounts on one browser.
@@ -1079,8 +1079,46 @@ function renderInventoryCategories() {
   const rows=state.inventory.filter(item=>{const product=state.products.find(p=>p.id===item.product_id)||{id:item.product_id,name:item.product,category:''};return matchesProduct(product,$('#inventory-search').value)&&(state.inventoryCategory==='all'||categoryOf(product)===state.inventoryCategory);});
   groupedTables('#inventory-table',rows,item=>categoryOf(state.products.find(p=>p.id===item.product_id)),['Product','Branch','Available','Unit','Barcode / item number',...(manager()?['Action']:[])],item=>[node('strong',item.product),item.branch,item.quantity,item.unit,state.products.find(p=>p.id===item.product_id)?.barcode||itemNumber(item.product_id),...(manager()?[editProductButton(item.product_id)]:[])]);
 }
+// Suggestions use the loaded catalogue, so each keystroke needs no network request.
+let suggestionIndex = -1;
+function matchingPosSuggestions() {
+  return state.products.filter(product=>product.is_active && matchesProduct(product,$('#pos-search').value))
+    .sort(compareProductNames).slice(0,12);
+}
+function hidePosSuggestions() {
+  $('#pos-suggestions').hidden=true; $('#pos-search').setAttribute('aria-expanded','false');
+  $('#pos-search').removeAttribute('aria-activedescendant'); suggestionIndex=-1;
+}
+function choosePosSuggestion(product) {
+  hidePosSuggestions();
+  const form=$('#sale-form');
+  if(!field(form,'branch_id')) {
+    form.elements.product_id.value=product.id;updateSalePolicy();$('#pos-search').value=product.name;
+    notice('Choose the sale branch, then add this product to the basket.');form.elements.branch_id.focus();return;
+  }
+  addPosProduct(product); $('#pos-search').focus({preventScroll:true}); hidePosSuggestions();
+}
+function renderPosSuggestions() {
+  const input=$('#pos-search'),host=$('#pos-suggestions');
+  if(!state.user || document.activeElement!==input){hidePosSuggestions();return;}
+  const products=matchingPosSuggestions(),branch=field($('#sale-form'),'branch_id');host.replaceChildren();
+  if(suggestionIndex>=products.length)suggestionIndex=-1;
+  if(!products.length)host.append(node('p','No matching products. Try another name or barcode.','small muted'));
+  products.forEach((product,index)=>{
+    const option=node('button',null,'pos-suggestion');option.type='button';option.id='pos-suggestion-'+product.id;
+    option.dataset.suggestProduct=product.id;option.setAttribute('role','option');option.setAttribute('aria-selected',String(index===suggestionIndex));
+    const stock=state.posBranch===branch?(state.posInventory.find(row=>row.product_id===product.id)?.quantity||0):null;
+    option.append(node('strong',product.name),node('span',`${money(product.selling_price)} / ${product.base_unit} ? ${branch?(stock===null?'Loading stock':stock+' available'):'Choose a branch'}`,'small muted'));
+    option.addEventListener('mousedown',event=>event.preventDefault());
+    option.addEventListener('click',()=>choosePosSuggestion(product));host.append(option);
+  });
+  host.hidden=false;input.setAttribute('aria-expanded','true');
+  if(suggestionIndex>=0){const option=host.children[suggestionIndex];input.setAttribute('aria-activedescendant',option.id);option.scrollIntoView({block:'nearest'});}
+  else input.removeAttribute('aria-activedescendant');
+}
 function renderPosProducts() {
   if(!state.user) return;
+  renderPosSuggestions();
   const form=$('#sale-form');const active=state.products.filter(product=>product.is_active).sort((first,second)=>
     SHOP_CATEGORIES.findIndex(category=>category.id===categoryOf(first))-SHOP_CATEGORIES.findIndex(category=>category.id===categoryOf(second)) || compareProductNames(first,second));
   renderCategoryButtons('#pos-categories',state.posCategory,active,category=>{state.posCategory=category;renderPosProducts();});
@@ -1119,13 +1157,31 @@ function addPosProduct(product) {
   if(addCartItem()){ $('#pos-search').value='';renderPosProducts(); }
 }
 $('#inventory-search').addEventListener('input',renderInventoryCategories);
-$('#pos-search').addEventListener('input',renderPosProducts);
+$('#pos-search').addEventListener('input',()=>{
+  suggestionIndex=-1;state.posCategory='all';
+  if(/^(No exact barcode match|No matching products)/.test($('#notice').textContent))notice('');
+  renderPosProducts();
+});
+$('#pos-search').addEventListener('focus',renderPosSuggestions);
+$('.pos-search-box').addEventListener('focusout',event=>{if(!event.currentTarget.contains(event.relatedTarget))hidePosSuggestions();});
+document.addEventListener('pointerdown',event=>{if(!$('.pos-search-box').contains(event.target))hidePosSuggestions();});
 $('#sale-form').elements.branch_id.addEventListener('change',()=>updatePosStock().catch(error=>notice(error.message,true)));
 $('#pos-search').addEventListener('keydown',event=>{
+  if(event.key==='Escape'){event.preventDefault();hidePosSuggestions();return;}
+  if(event.key==='ArrowDown'||event.key==='ArrowUp') {
+    event.preventDefault();const matches=matchingPosSuggestions();
+    if(matches.length){suggestionIndex=suggestionIndex<0?(event.key==='ArrowDown'?0:matches.length-1):(suggestionIndex+(event.key==='ArrowDown'?1:matches.length-1)+matches.length)%matches.length;renderPosSuggestions();}
+    return;
+  }
   if(event.key!=='Enter')return;event.preventDefault();
-  const code=event.currentTarget.value.trim();if(!code)return;
-  const product=state.products.find(product=>product.barcode===code) || (/^#\d+$/.test(code) ? state.products.find(product=>product.id===Number(code.slice(1))) : null);
-  if(product)addPosProduct(product);else notice('No exact barcode match. Search by name or assign the printed barcode in Manage products.',true);
+  const code=event.currentTarget.value.trim();if(!code && suggestionIndex<0)return;
+  // Exact scanner codes still work; typed names use the suggestion selection instead.
+  const exact=state.products.find(product=>product.is_active && product.barcode===code) || (/^#\d+$/.test(code)?state.products.find(product=>product.is_active && product.id===Number(code.slice(1))):null);
+  const matches=matchingPosSuggestions();
+  const selected=exact || (suggestionIndex>=0?matches[suggestionIndex]:matches.length===1?matches[0]:null);
+  if(selected)choosePosSuggestion(selected);
+  else if(matches.length){suggestionIndex=0;renderPosSuggestions();}
+  else {renderPosSuggestions();notice('No matching products. Check the name or barcode.',true);}
 });
 
 // Attach every handler before restoring the session or enabling manual sign-in.

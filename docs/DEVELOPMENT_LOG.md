@@ -872,3 +872,22 @@ customer tests passing after that safeguard. Browser regression checks passed fo
 salesperson customer creation/editing, own-branch credit checkout and POS repayment,
 retained reversal restrictions and existing workflows. Account switching clears
 cached credit-customer options to avoid showing the previous account's choices.
+
+
+## Latest Change: Instant Product Search Suggestions
+
+Date: 17 November 2026, Africa/Lagos (WAT).
+
+Added an alphabetical suggestion list directly under the Sales search input,
+showing up to 12 active matching products with price/unit and branch availability.
+Uses the loaded catalogue with no network request on each keystroke. Clicking or
+Arrow Up/Down plus Enter selects an item; Escape/outside focus closes the list.
+Input searches across categories. Multi-match partial names no longer trigger an
+incorrect barcode error. Exact scanner codes keep their existing behavior.
+Branch, stock, price and pending-request checks continue through the same cart code.
+
+Validation: JavaScript syntax, three frontend/static markup tests and isolated
+browser smoke checks passed. Covered immediate partial-name results, no-branch
+selection safety, click/keyboard selection, Escape and existing barcode, sales,
+credit, repayment, transfer, return, report, retry and mobile flows. No schema or
+business data changes are needed.

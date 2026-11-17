@@ -71,10 +71,13 @@
                 0 items
               </span>
             </div>
-            <label class="pos-search-label">
-              Search products or scan a barcode
-              <input id="pos-search" type="search" autocomplete="off" placeholder="Product name, barcode or item number">
-            </label>
+            <div class="pos-search-box">
+              <label class="pos-search-label">
+                Search products or scan a barcode
+                <input id="pos-search" type="search" autocomplete="off" placeholder="Start typing a product name?" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pos-suggestions">
+              </label>
+              <div id="pos-suggestions" class="pos-suggestions" role="listbox" aria-label="Matching products" hidden></div>
+            </div>
             <div id="pos-categories" class="category-tabs" role="group" aria-label="Checkout categories">
             </div>
             <p id="pos-stock-hint" class="muted">
