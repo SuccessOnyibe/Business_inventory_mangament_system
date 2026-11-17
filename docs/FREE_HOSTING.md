@@ -4,7 +4,8 @@ Prepared: 17 November 2026, Africa/Lagos (WAT).
 
 This deploys sample data first. It does not publish or copy the local business
 database. Hosting can remain free while usage fits the providers' free limits.
-There is no account access or cloud deployment configured in this workspace yet.
+The sample staging app is live at https://festy-agric-staging.onrender.com/app/.
+See the current deployment details at the end of this guide.
 
 ## 1. Create the two free accounts
 
@@ -125,7 +126,36 @@ Official references:
 The Neon CLI has linked the existing festy-agric-staging project and its default
 branch named production. This is Neon's environment name, not an indication that
 real business records have been migrated. The connection is saved privately in
-.env.local, with the unpooled URL available for schema/backup operations. A read-only
-connection check passed; the database was empty at connection time. Schema/sample
-initialization and the staging Admin account are still required before app login.
+.env.local, with the unpooled URL available for schema/backup operations. The named database festy_staging is now initialized with the application schema,
+three branches, three SAMPLE products and matching delivery history. The private
+.env.local URLs select this database. The staging Admin username is staging_admin;
+its generated password is saved privately on this PC in
+%LOCALAPPDATA%/FestyAgricServices/staging-login.txt. No password is stored in Git.
+Render deployment, HTTPS, readiness, private Admin login, sample-data reads and
+logout have been verified. Owner testing on devices at the branches is still required.
 Do not replace the unpooled URL with the pooled URL for schema setup or pg_dump.
+
+
+## Current Render staging deployment
+
+Deployed 17 November 2026 (Africa/Lagos). App:
+https://festy-agric-staging.onrender.com/app/
+
+- Service ID: srv-dbu7a6mc6qcc73fc0dgg
+- Workspace: Success's workspace
+- Plan/region verified from Render: Free / Frankfurt
+- Auto-deploy: off; changes require a reviewed manual deploy
+- Created directly with the official CLI, mirroring render.yaml. It is not a
+  Blueprint-managed service; future Blueprint syncs are not automatic.
+- Source commit: b2d1fe50426dbebd52c374c9e147ec96841eec70
+- Database: Neon festy_staging, sample data only
+
+The Render plugin's skills were available, but live MCP tools were not exposed to
+this session. The official CLI fallback was installed in the user's local app-data
+directory and authorized by the owner in the browser. No API key was requested in
+chat. Runtime DATABASE_URL was supplied privately; it is not in this guide or Git.
+
+Verified HTTPS frontend/assets, process and database readiness, unauthenticated
+inventory rejection, Admin authentication, three branches/products/inventory rows,
+sample-only product names and logout. No remote stock or financial test transactions
+were submitted. Production data migration and off-host backup recovery remain pending.

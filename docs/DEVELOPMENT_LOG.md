@@ -795,3 +795,28 @@ Validation: six new connection-selection/cleanup tests plus the existing suite,
 
 Browser smoke checks also passed for receiving, checkout, transfers, credit,
 repayments, returns, reports, adjustments, retries and mobile layout.
+
+
+## Latest Change: Render Free Staging Deployed
+
+Date: 17 November 2026, Africa/Lagos (WAT).
+
+Initialized the approved empty Neon festy_staging database with the tested schema,
+three sample products, three branches, delivery history and a private Admin login.
+Updated only ignored staging URLs; local business credentials/data were preserved.
+Read-only release inspection returned zero warnings and FastAPI readiness passed.
+
+Created one Free Render web service in Frankfurt, mirroring render.yaml, using
+GitHub main and a private pooled Neon URL. Render CLI 2.37.0 was installed from its
+verified official release, authorized by the owner through a browser, and scoped
+to the workspace shown in the owner's dashboard. The Render plugin supplied skills
+but no live MCP tools, so the supported CLI fallback was used. No paid datastore,
+worker, cron or other paid resource was created. Auto-deploy remains off.
+
+Service srv-dbu7a6mc6qcc73fc0dgg and deployment dep-dbu7a7mc6qcc73fc0fdg are live
+at https://festy-agric-staging.onrender.com/app/. Verified HTTPS, frontend/assets,
+health/readiness, unauthorized inventory rejection, private staging Admin login,
+three sample branch/product/inventory reads, and logout. No stock or financial
+transactions were submitted remotely. Public deployment metadata is in
+deployment/render-staging.json, with no secrets. Owner branch-device acceptance,
+cloud backup recovery and production data migration remain outstanding.

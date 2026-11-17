@@ -106,3 +106,30 @@ No database migration is required. See [backend structure](BACKEND_STRUCTURE.md)
 
 Browser smoke checks also passed for product creation, branch receiving, checkout,
 transfers, credit, repayments, returns, reports, adjustments, retries and mobile layout.
+
+
+## Neon sample staging ? 17 November 2026, Africa/Lagos
+
+Created the empty named festy_staging database within the owner's selected Neon
+project. Applied the tested schema/migration chain and sample records atomically:
+three branches, three clearly labelled sample products, matching delivery history
+and a staging Admin. Generated password is saved privately on the owner's PC;
+no credentials or real business records are in Git. Private local pooled/direct
+URLs now select festy_staging. Original backend/.env remains unchanged.
+
+Render staging is now live; see the deployment verification below.
+Production data migration has not occurred.
+
+
+## Free Render staging live ? 17 November 2026, Africa/Lagos
+
+https://festy-agric-staging.onrender.com/app/ is live. Render reports Free compute
+in Frankfurt, automatic deploys off. Official CLI fallback was used after owner
+browser authorization because this session exposed plugin skills but no MCP tools.
+No paid services or Render database were created; the app uses Neon sample staging.
+
+HTTPS, frontend assets, readiness, Admin login, sample branch/product/inventory
+reads, unauthorized access rejection and logout passed. No stock/financial test
+transactions were sent. Login details are in the owner's existing private local
+staging-login.txt file. Verify owner workflows/devices at each branch before any
+production migration. Cloud backups/restore validation remain a go-live requirement.

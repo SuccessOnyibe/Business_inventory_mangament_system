@@ -1,0 +1,14 @@
+{
+  "service_id": "srv-dbu7a6mc6qcc73fc0dgg",
+  "url": "https://festy-agric-staging.onrender.com",
+  "workspace_id": "tea-dbu5hmon74is73fgfsmg",
+  "name": "festy-agric-staging",
+  "region": "frankfurt",
+  "plan": "free",
+  "source": "direct_cli",
+  "auto_deploy": false,
+  "deploy_id": "dep-dbu7a7mc6qcc73fc0fdg",
+  "status": "live",
+  "verified_date": "2026-11-17",
+  "deployed_commit": "b2d1fe50426dbebd52c374c9e147ec96841eec70"
+}
