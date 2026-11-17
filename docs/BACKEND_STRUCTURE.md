@@ -30,7 +30,8 @@ Shared functions have small, separate homes:
 - `receipt_helpers.py`: format sale/correction receipts and attach correction details.
 - `credit_helpers.py`: calculate credit totals for receipts, repayments and returns.
 - `reconciliation_helpers.py`: compare daily snapshots and interpret discrepancy states.
-- `database.py`: open and close PostgreSQL connections, as before.
+- `database.py`: open/close PostgreSQL connections using process DATABASE_URL,
+  explicit DB_* settings, private .env.local URL, or the existing backend/.env fallback.
 
 Helpers do not import routers or `main.py`. This avoids circular imports: for
 example, a sale receipt can show repayment totals without importing the repayment

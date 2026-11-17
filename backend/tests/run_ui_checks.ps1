@@ -17,6 +17,8 @@ try {
     & $pgCtl -D $cluster -l (Join-Path $cluster 'server.log') -o '-h 127.0.0.1 -p 55439' -w start
     if($LASTEXITCODE -ne 0){throw 'Disposable test server failed to start'}
     $started=$true
+    # A shell may already have a hosted URL; this child process must use QA only.
+    Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
     $env:DB_HOST='127.0.0.1';$env:DB_PORT='55439';$env:DB_NAME='postgres';$env:DB_USER='inventory_test';$env:DB_PASSWORD=''
     $env:PYTHONPATH=$backend;$env:UI_TEST_DATABASE='inventory_ui_test_'+[guid]::NewGuid().ToString('N')
     $env:UI_TEST_PASSWORD=[guid]::NewGuid().ToString('N')

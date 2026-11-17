@@ -763,3 +763,35 @@ Validation: all six new deployment/setup tests passed, including full initializa
 rollback and preservation of existing data on the isolated PostgreSQL test server.
 Render/Neon accounts, actual remote build, HTTPS device checks and cloud backup
 configuration remain pending. No business-database writes or cloud deployment occurred.
+
+
+## Latest Change: Connect the Existing Neon Project
+
+Date: 17 November 2026, Africa/Lagos (WAT).
+
+Updated the Neon CLI and linked the owner-selected existing project/default branch
+with PostgreSQL only. Existing agent setup was reused. Reviewed the plan (zero
+conflicts/warnings), then applied neon deploy. Private pooled/direct connection
+variables are in ignored .env.local; .neon and node_modules are also ignored.
+Generated neon.ts and locked Node dependencies are development tooling, while
+FastAPI remains Python and keeps its existing authentication system.
+
+The Python connection helper now accepts process DATABASE_URL or private root
+.env.local without rewriting URL TLS/pooling options or exporting secrets. Explicit
+DB_* settings retain the original local/split deployment and QA behavior; the
+unchanged backend/.env remains the fallback. Connections still close in finally,
+and workflow transaction ownership is unchanged. A failed URL connection never
+falls back to a different database. The test runner clears inherited DATABASE_URL
+in its child process to prevent accidentally selecting a hosted database.
+
+Render blueprint now requests one private DATABASE_URL and selects Frankfurt.
+A read-only Neon SELECT check passed; public tables were empty. No schema changes,
+business-data migration or sample writes were performed remotely. Existing local
+credentials were verified unchanged, and connection strings are absent from all
+changed non-ignored files. Local scheduled backups still target the local DB.
+
+Validation: six new connection-selection/cleanup tests plus the existing suite,
+177 tests total, all passed against the disposable PostgreSQL test server.
+
+Browser smoke checks also passed for receiving, checkout, transfers, credit,
+repayments, returns, reports, adjustments, retries and mobile layout.

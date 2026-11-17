@@ -20,3 +20,5 @@ Thumbs.db
 backups/
 *.dump
 *.dump.partial
+.neon
+node_modules/

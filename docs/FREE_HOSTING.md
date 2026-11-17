@@ -54,22 +54,19 @@ Review the resources: exactly one **Free web service**, no Render database or pa
 resource. The database lives separately in Neon. If a dashboard suggests a paid
 resource, return to Free before continuing.
 
-Enter these environment variables when prompted (use Neon's Connect details):
+When prompted, set **DATABASE_URL** to the pooled Neon connection string for the
+chosen staging database. Paste it privately in Render's Environment settings.
+Keep the sslmode=require and channel_binding=require URL parameters intact.
+The value must not be committed to Git or pasted into chat. The blueprint now
+selects Frankfurt, matching the chosen Neon region.
 
-| Variable | Value |
-| --- | --- |
-| DB_HOST | Neon hostname, without a scheme or slash; the pooled hostname may be used for the running app |
-| DB_USER | Neon database role, not the web-app Admin username |
-| DB_PASSWORD | Neon database password, entered privately in Render |
-| DB_NAME | festy_staging (already configured) |
-| DB_PORT | 5432 (already configured) |
-| PGSSLMODE | require (already configured) |
-| PGCHANNELBINDING | require (already configured) |
-
-The app currently reads the separate DB_* settings, **not DATABASE_URL**. Copy
-component values from Neon's connection details; do not paste the whole URL into
-DB_HOST. The Render values never go into the repository. For the database password,
-use the original password shown by Neon, not a URL-percent-encoded representation.
+The Python helper accepts DATABASE_URL. In a local run without explicit DB_*
+variables it reads the repository-root .env.local populated by Neon. Explicit
+process DATABASE_URL wins; explicit DB_* variables take precedence over the local
+URL file, so disposable tests and older split-field deployments remain isolated.
+Without either URL, the original backend/.env is the fallback and is not rewritten.
+The backup tools still use their original DB_* configuration, so the local scheduled
+backup does not automatically switch to Neon.
 
 The repository root must remain the Render root: backend/ needs sibling frontend/
 and docs/. render.yaml installs backend/requirements.txt and starts one Uvicorn
@@ -122,3 +119,13 @@ Official references:
 - https://render.com/docs/free
 - https://neon.com/docs/connect/connect-from-any-app
 - https://neon.com/pricing
+
+## Linked project connection status
+
+The Neon CLI has linked the existing festy-agric-staging project and its default
+branch named production. This is Neon's environment name, not an indication that
+real business records have been migrated. The connection is saved privately in
+.env.local, with the unpooled URL available for schema/backup operations. A read-only
+connection check passed; the database was empty at connection time. Schema/sample
+initialization and the staging Admin account are still required before app login.
+Do not replace the unpooled URL with the pooled URL for schema setup or pg_dump.

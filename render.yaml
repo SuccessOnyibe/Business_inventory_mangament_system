@@ -4,6 +4,7 @@ services:
     name: festy-agric-staging
     runtime: python
     plan: free
+    region: frankfurt
     branch: main
     autoDeployTrigger: "off"
     buildCommand: pip install -r backend/requirements.txt
@@ -15,19 +16,8 @@ services:
     # Liveness does not wake the database on every provider health probe.
     healthCheckPath: /health
     envVars:
-      - key: DB_HOST
+      # Paste the pooled Neon URL privately in Render, never in this file.
+      - key: DATABASE_URL
         sync: false
-      - key: DB_PORT
-        value: "5432"
-      - key: DB_NAME
-        value: festy_staging
-      - key: DB_USER
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: PGSSLMODE
-        value: require
-      - key: PGCHANNELBINDING
-        value: require
       - key: PYTHONUNBUFFERED
         value: "1"
