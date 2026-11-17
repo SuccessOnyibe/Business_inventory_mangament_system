@@ -820,3 +820,23 @@ three sample branch/product/inventory reads, and logout. No stock or financial
 transactions were submitted remotely. Public deployment metadata is in
 deployment/render-staging.json, with no secrets. Owner branch-device acceptance,
 cloud backup recovery and production data migration remain outstanding.
+
+
+## Latest Change: Keep Login Through Refresh
+
+Date: 17 November 2026, Africa/Lagos (WAT).
+
+The frontend previously kept its bearer token only in memory, so every reload
+lost authentication even while the server session was valid. Save just the opaque
+token in tab-scoped sessionStorage and revalidate /auth/me on startup. Shared
+workspace initialization preserves the current role and assigned-branch checks.
+No password is stored. Existing eight-hour expiry, logout revocation and transaction
+retry keys are unchanged. Clear saved login on logout/401; retain it on temporary
+network errors so reload can retry. Blocked storage falls back to memory-only login.
+
+Validation: JavaScript syntax, three frontend/static markup tests, and isolated
+browser smoke checks passed, including refresh reusing the same token, network
+failure/recovery, revoked session removal, logout surviving refresh and a saved
+sale retry after refresh without a duplicate purchase. Existing checkout, credit,
+repayment, transfer, return, report and mobile flows also passed. The test runner
+now waits for API liveness instead of racing a fixed startup delay.

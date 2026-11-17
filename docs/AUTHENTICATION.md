@@ -151,3 +151,13 @@ repayment entries. Salespersons can read credit invoices/balances/payment histor
 only in their assigned branch. Credit customer/order/repayment branch consistency
 is also enforced by composite foreign keys. No public password-reset or email
 service is configured; use the existing Admin account management process.
+
+
+## Browser refresh
+
+The frontend keeps its opaque bearer token in tab-scoped sessionStorage and calls
+/auth/me after reload before showing account data. It never stores the password
+or trusts a cached role. Refresh reuses the same server session and does not extend
+its eight-hour expiry. Logout and 401 responses remove the saved token. Temporary
+connection failures preserve it so a refresh can retry. If browser storage is
+blocked, sign-in still works in memory and refresh requires sign-in again.

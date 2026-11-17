@@ -58,17 +58,22 @@ POS references, refunds, and financial reconciliation are future stages.
 
 ## Retries and sessions
 
-Login tokens stay only in browser memory. A reload requires signing in again;
-logout revokes the current server session. Passwords are not stored by application code.
+Login tokens are kept in tab-scoped sessionStorage, so refreshing reuses the existing
+server session after validating /auth/me. The eight-hour server expiry is unchanged;
+logout revokes the session and removes its saved token. Passwords are not stored by application code.
 The browser's own password manager may separately offer to save credentials.
 
 Before submitting a sale, receipt, or dispatch, the page saves its request UUID and
 body in tab-scoped sessionStorage, partitioned by account ID. If the response is
 lost, the form is locked and its button becomes Retry saved request. Retry it to
 retrieve the original result without duplicate stock changes. Pending requests also
-restore after reload and signing back in with the same account. Do not close the
+restore after reload for the same authenticated account. Do not close the
 tab or clear its storage while a request is unconfirmed; this removes the local key.
-This tab storage contains transaction details, never your token or password.
+Pending-request entries contain transaction details; the session token has a separate
+entry in the same tab storage. Neither entry contains the login password.
+A temporary network failure preserves the saved token for a refresh retry. Revoked
+or expired sessions clear it and require sign-in. If tab storage is blocked, login
+still works in memory but cannot survive refresh.
 
 Product/account creation is not idempotent. After an uncertain network error, refresh
 the list to check the result before submitting again. Delivery confirmation itself

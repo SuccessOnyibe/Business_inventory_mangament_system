@@ -1,6 +1,6 @@
 'use strict';
 
-// This frontend uses the same origin as FastAPI. The session token stays in memory.
+// This frontend uses the same origin as FastAPI. A tab session survives page refresh.
 const state = { token: null, user: null, branches: [], products: [], users: [], inventory: [],
   sales: [], transfers: [], reconciliations: [], corrections: [], events: [], adjustments: [], receipts: [], customers: [], creditSales: [], repayments: [], posInventory: [], posBranch: '', inventoryCategory:'all', productCategory:'all', posCategory:'all', cart: [], receipt: null, correctionReceipt: null, report: null, reportParams: null,
   receivingDraft: null, lastReceipt: null, createdProductForStock: null, filter: '', salesPage: 0, transfersPage: 0, reconciliationsPage: 0, correctionsPage: 0, eventsPage: 0, adjustmentsPage: 0, receiptsPage: 0, customersPage: 0, creditSalesPage: 0, repaymentsPage: 0, view: 'inventory' };
@@ -68,7 +68,16 @@ function table(target, headers, rows, empty = 'No records to show yet.') {
 function notice(text, error = false) {
   $('#notice').textContent = text; $('#notice').className = error ? 'error' : ''; $('#notice').hidden = !text;
 }
-function showLogin() {
+const SESSION_KEY = 'festy-session-token';
+function savedSessionToken() {
+  try { return sessionStorage.getItem(SESSION_KEY); } catch { return null; }
+}
+function saveSessionToken(token) {
+  // Only the opaque session token is stored, never the password or trusted role data.
+  try { sessionStorage.setItem(SESSION_KEY, token); } catch { /* Memory-only login still works. */ }
+}
+function showLogin(clearSavedSession = true) {
+  if(clearSavedSession) { try { sessionStorage.removeItem(SESSION_KEY); } catch { /* Storage can be blocked. */ } }
   state.token = null; state.user = null;
   state.receivingDraft=null; state.lastReceipt=null; state.createdProductForStock=null;
   for(const id of ['receipt-result','product-receiving-context','created-product-next']) $('#'+id).hidden=true;
@@ -535,23 +544,43 @@ function renderCorrections() {
   }));
 }
 
+// Refresh uses the existing server session; it does not create another login.
+async function openWorkspace() {
+  state.user = await api('/auth/me');
+  document.body.dataset.role = state.user.role;
+  $('#profile').textContent = `${state.user.username} · ${state.user.role}`;
+  $('#login-screen').hidden = true; $('#workspace').hidden = false;
+  $('#today').textContent = date(new Date().toISOString());
+  state.filter = state.user.role === 'salesperson' && state.user.branch_id ? String(state.user.branch_id) : '';
+  state.salesPage = 0; state.transfersPage = 0; state.reconciliationsPage = 0; state.correctionsPage = 0; state.eventsPage = 0; state.adjustmentsPage = 0; state.receiptsPage = 0; state.customersPage = 0; state.creditSalesPage = 0; state.repaymentsPage = 0; notice(''); showView('inventory');
+  $$('.admin-only input').forEach(input => { input.disabled = state.user.role !== 'admin'; });
+  const unassigned = state.user.role === 'salesperson' && !state.user.branch_id;
+  $('#unassigned').hidden = !unassigned;
+  if (unassigned) { $$('.view').forEach(view => { view.hidden = true; }); return; }
+  await refresh();
+}
+async function restoreSession() {
+  const token = savedSessionToken();
+  if(!token) return;
+  state.token = token;
+  try { await openWorkspace(); }
+  catch(error) {
+    if(state.user) { notice(error.message, true); return; }
+    // A network failure keeps the saved token so refreshing can retry safely.
+    showLogin(error.status === 401);
+    $('#login-error').textContent = error.status === 401
+      ? 'Your session ended. Please sign in again.'
+      : 'Could not restore your session. Refresh to retry, or sign in again.';
+  }
+}
+
 $('#login-form').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget; const button = form.querySelector('[type=submit]'); button.disabled = true; $('#login-error').textContent = '';
   try {
     const result = await api('/auth/login', { method: 'POST', body: { username: field(form, 'username'), password: field(form, 'password') } });
-    form.elements.password.value = ''; state.token = result.access_token; state.user = await api('/auth/me');
-    document.body.dataset.role = state.user.role;
-    $('#profile').textContent = `${state.user.username} · ${state.user.role}`;
-    $('#login-screen').hidden = true; $('#workspace').hidden = false;
-    $('#today').textContent = date(new Date().toISOString());
-    state.filter = state.user.role === 'salesperson' && state.user.branch_id ? String(state.user.branch_id) : '';
-    state.salesPage = 0; state.transfersPage = 0; state.reconciliationsPage = 0; state.correctionsPage = 0; state.eventsPage = 0; state.adjustmentsPage = 0; state.receiptsPage = 0; state.customersPage = 0; state.creditSalesPage = 0; state.repaymentsPage = 0; notice(''); showView('inventory');
-    $$('.admin-only input').forEach(input => { input.disabled = state.user.role !== 'admin'; });
-    const unassigned = state.user.role === 'salesperson' && !state.user.branch_id;
-    $('#unassigned').hidden = !unassigned;
-    if (unassigned) { $$('.view').forEach(view => { view.hidden = true; }); return; }
-    await refresh();
-  } catch (error) { if (!state.token) $('#login-error').textContent = error.message; else notice(error.message, true); }
+    form.elements.password.value = ''; state.token = result.access_token; saveSessionToken(state.token);
+    await openWorkspace();
+  } catch (error) { if (!state.user) { showLogin(error.status === 401); $('#login-error').textContent = error.message; } else notice(error.message, true); }
   finally { button.disabled = false; }
 });
 $('#logout').addEventListener('click', async () => {
@@ -1098,5 +1127,5 @@ $('#pos-search').addEventListener('keydown',event=>{
   if(product)addPosProduct(product);else notice('No exact barcode match. Search by name or assign the printed barcode in Manage products.',true);
 });
 
-// Enable sign-in only after all page handlers are attached.
-$('#login-form [type=submit]').disabled = false;
+// Attach every handler before restoring the session or enabling manual sign-in.
+restoreSession().finally(() => { $('#login-form [type=submit]').disabled = false; });

@@ -34,7 +34,17 @@ try {
         Get-Content -LiteralPath (Join-Path $qa 'unit.err') -Tail 12
     }
     $api=Start-Process -FilePath $python -ArgumentList @('-B','-m','uvicorn','main:app','--host','127.0.0.1','--port','58541') -WorkingDirectory $backend -WindowStyle Hidden -RedirectStandardOutput (Join-Path $qa 'api.out') -RedirectStandardError (Join-Path $qa 'api.err') -PassThru
-    Start-Sleep -Seconds 2
+    # Wait for API readiness rather than racing slow startup on this PC.
+    $apiReady=$false
+    $apiDeadline=(Get-Date).AddSeconds(30)
+    while((Get-Date) -lt $apiDeadline){
+        try {
+            $probe=Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:58541/health' -TimeoutSec 2
+            if($probe.StatusCode -eq 200){$apiReady=$true;break}
+        } catch { if($api.HasExited){throw 'Test API exited during startup'} }
+        Start-Sleep -Milliseconds 300
+    }
+    if(-not $apiReady){throw 'Test API did not become ready'}
     $browser=Start-Process -FilePath 'C:\Program Files\Google\Chrome\Application\chrome.exe' -ArgumentList @('--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-extensions','--remote-debugging-address=127.0.0.1','--remote-debugging-port=9223',('--user-data-dir='+(Join-Path $qa 'chrome')),'about:blank') -WindowStyle Hidden -PassThru
     Start-Sleep -Seconds 2
     $env:UI_TEST_URL='http://127.0.0.1:58541';$env:UI_SCREENSHOT_PATH=Join-Path $qa 'mobile.png'

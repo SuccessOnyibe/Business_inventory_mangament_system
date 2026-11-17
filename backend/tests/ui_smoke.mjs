@@ -60,6 +60,31 @@ try {
   await send('Page.navigate', { url: base + '/app/' });
   await wait("document.querySelector('#login-form') !== null");
   await login('ui_admin');
+  const originalSession = await evaluate('state.token');
+  async function reloadSignedIn() {
+    await evaluate('window.beforeSessionReload = true');
+    await send('Page.reload');
+    await wait("!window.beforeSessionReload && document.readyState === 'complete' && !document.querySelector('#login-form [type=submit]').disabled && !document.querySelector('#workspace').hidden && !document.querySelector('#refresh').disabled");
+  }
+  await reloadSignedIn();
+  assert.equal(await evaluate('state.token'),originalSession,'Refresh must reuse the existing session');
+  assert.equal(await evaluate("document.querySelector('#login-form').elements.password.value"),'');
+  // A temporary connection failure must not destroy a still-valid saved session.
+  await send('Network.enable');
+  await send('Network.setBlockedURLs',{urls:['*/auth/me']});
+  await evaluate('window.beforeSessionReload = true');await send('Page.reload');
+  await wait("!window.beforeSessionReload && document.readyState === 'complete' && document.querySelector('#login-error').textContent.includes('Could not restore')");
+  assert.equal(await evaluate('sessionStorage.getItem(SESSION_KEY)'),originalSession);
+  await send('Network.setBlockedURLs',{urls:[]});
+  await reloadSignedIn();
+  assert.equal(await evaluate('state.token'),originalSession);
+  // Revoke at the server while keeping browser storage to test restoration rejection.
+  await evaluate("api('/auth/logout',{method:'POST'})");
+  await evaluate('window.beforeSessionReload = true');await send('Page.reload');
+  await wait("!window.beforeSessionReload && document.readyState === 'complete' && document.querySelector('#login-error').textContent.includes('session ended')");
+  assert.equal(await evaluate('sessionStorage.getItem(SESSION_KEY)'),null);
+  assert.equal(await evaluate('state.user'),null);
+  await login('ui_admin');
 
   assert.equal(await evaluate("document.querySelector('[data-view=cash]')"),null);
   assert.equal(await evaluate("document.querySelectorAll('.sidebar [data-view]')[2].dataset.view"),'products');
@@ -142,10 +167,8 @@ try {
   await fill('sale-form', { branch_id: '1', product_id: '1', quantity: '1', unit_price: '25000.00', payment_method: 'cash' });
   await submit('sale-form'); await wait("document.querySelector('#sale-form [type=submit]').textContent === 'Retry saved request'");
   assert.equal(await evaluate("document.querySelector('#sale-price').disabled"), true);
-  // Pending keys survive a reload; authentication tokens deliberately do not.
-  await send('Page.reload');
-  await wait("document.querySelector('#login-form') !== null && !document.querySelector('#login-screen').hidden");
-  await login('ui_admin'); await navigate('sales');
+  // The session and pending key survive together; retry still cannot duplicate a sale.
+  await reloadSignedIn(); await navigate('sales');
   assert.equal(await evaluate("document.querySelector('#sale-form [type=submit]').textContent"), 'Retry saved request');
   await submit('sale-form'); await saved('Cash');
   assert.equal(await evaluate("(await api('/checkouts')).length"), 2, 'Retry must not create a third purchase');
@@ -295,6 +318,10 @@ try {
   assert.equal(await evaluate("(await api('/customers'))[0].is_active"), false);
   await evaluate("document.querySelector('#logout').click()");
   await wait("!document.querySelector('#login-screen').hidden");
+  assert.equal(await evaluate('sessionStorage.getItem(SESSION_KEY)'),null);
+  await evaluate('window.beforeSessionReload = true');await send('Page.reload');
+  await wait("!window.beforeSessionReload && document.readyState === 'complete' && !document.querySelector('#login-form [type=submit]').disabled");
+  assert.equal(await evaluate("document.querySelector('#workspace').hidden"),true,'Logout must survive refresh');
   await login('ui_seller'); await navigate('customers');
   assert.equal(await evaluate('state.customers.length'), 1);
   assert.equal(await evaluate("document.querySelectorAll('#customers-table button').length"), 0);
