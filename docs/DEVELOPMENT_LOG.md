@@ -891,3 +891,7 @@ browser smoke checks passed. Covered immediate partial-name results, no-branch
 selection safety, click/keyboard selection, Escape and existing barcode, sales,
 credit, repayment, transfer, return, report, retry and mobile flows. No schema or
 business data changes are needed.
+
+Deployed commit 2f3d062 to Free staging. Live Chrome checks confirmed immediate
+partial-name results, no false barcode error, mobile width containment and Escape
+closing. Verification submitted no stock or financial transactions.
