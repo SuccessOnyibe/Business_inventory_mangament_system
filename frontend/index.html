@@ -6,6 +6,11 @@
   <meta name="color-scheme" content="light">
   <title>FESTY AGRIC SERVICES · Stock & sales</title>
   <link rel="stylesheet" href="./style.css">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#185b42">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <script src="./offline-store.js" defer></script>
+  <script src="./offline.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
@@ -15,13 +20,22 @@
   </section>
 
   <div id="workspace" class="workspace" hidden>
-    <aside class="sidebar"><div class="brand"><span class="brand-mark">FA</span><span>FESTY AGRIC<br>SERVICES</span></div><p class="nav-caption">WORKSPACE</p><nav aria-label="Main navigation"><button data-view="inventory" class="nav-item selected">Inventory</button><button data-view="receiving" class="nav-item manager-only">Add stock</button><button data-view="products" class="nav-item">Manage products</button><button data-view="sales" class="nav-item">Sales</button><button data-view="adjustments" class="nav-item">Stock adjustments</button><button data-view="reports" class="nav-item manager-only">Reports &amp; CSV</button><button data-view="reconciliations" class="nav-item">Daily reconciliation</button><button data-view="transfers" class="nav-item">Transfers</button><button data-view="credit" class="nav-item">Customer credit</button><button data-view="customers" class="nav-item">Customers</button><button data-view="accounts" class="nav-item admin-only">Accounts</button></nav><div class="sidebar-footer"><span class="live-dot"></span> Connected to your inventory<p>All dates shown in Lagos time</p></div></aside>
+    <aside class="sidebar"><div class="brand"><span class="brand-mark">FA</span><span>FESTY AGRIC<br>SERVICES</span></div><p class="nav-caption">WORKSPACE</p><nav aria-label="Main navigation"><button data-view="inventory" class="nav-item selected">Inventory</button><button data-view="receiving" class="nav-item manager-only">Add stock</button><button data-view="products" class="nav-item">Manage products</button><button data-view="sales" class="nav-item">Sales</button><button data-view="offline" class="nav-item">Device &amp; sync</button><button data-view="adjustments" class="nav-item">Stock adjustments</button><button data-view="reports" class="nav-item manager-only">Reports &amp; CSV</button><button data-view="reconciliations" class="nav-item">Daily reconciliation</button><button data-view="transfers" class="nav-item">Transfers</button><button data-view="credit" class="nav-item">Customer credit</button><button data-view="customers" class="nav-item">Customers</button><button data-view="accounts" class="nav-item admin-only">Accounts</button></nav><div class="sidebar-footer"><span class="live-dot"></span> Stock &amp; sales workspace<p>All dates shown in Lagos time</p></div></aside>
     <main class="main">
       <header class="topbar"><span id="today"></span><div class="account-menu"><span id="profile"></span><button id="logout" class="text-button">Sign out</button></div></header>
       <div class="page-heading"><div><p class="eyebrow">YES Austin, Success is the BEST</p><h1 id="page-title">Inventory</h1><p id="page-subtitle" class="muted">Know what is available at each branch.</p></div><div class="toolbar"><label class="inline-label" for="branch-filter">Viewing<select id="branch-filter"></select></label><button id="refresh" class="secondary">Refresh</button></div></div>
+      <div class="connection-bar" role="status"><span id="connection-status">Online</span><button id="install-pwa" class="secondary" type="button" hidden>Install app</button><button id="update-pwa" class="secondary" type="button" hidden>Reload updated app</button></div>
       <div id="notice" role="status" aria-live="polite" hidden></div>
       <div id="unassigned" class="card" hidden>Ask an Admin to assign your branch before using the workspace.</div>
 
+      <section id="view-offline" class="view" hidden>
+        <div class="card"><h2>Prepare this branch device</h2><p id="offline-status" role="status">Prepare online before the first outage.</p>
+          <p>Use one device per branch while offline. Download fresh stock before a shift. Offline sales have provisional receipts and remain on this device until the server confirms them. Financial reports use the upload/posting date; the original sale time stays on its receipt and in its notes.</p>
+          <div class="offline-controls"><label>Offline branch<select id="offline-branch"></select></label><button id="prepare-offline" type="button" class="primary">Prepare / update device</button><button id="sync-offline" type="button" class="secondary">Sync now</button><button id="export-offline" type="button" class="secondary">Export device sales</button></div>
+          <p class="hint">Stay signed in during an outage (eight-hour session). Reopen the app to finish syncing. Do not clear browser data with unsynced sales. Record POS only after the terminal confirms payment. Transfers, repayments, customer changes and daily counts require internet.</p>
+        </div>
+        <div class="card"><h2>Device sales and upload results</h2><p>Needs review means the sale was not accepted online. Keep its provisional receipt and ask a Manager to correct the stock, price or permissions, then retry the unchanged sale. Nothing is silently discarded.</p><div id="offline-sales"></div></div>
+      </section>
       <section id="view-inventory" class="view">
         <div class="stats"><article class="stat"><p>Products stocked</p><strong id="stocked-count">—</strong><span>in the selected branches</span></article><article class="stat"><p>In transit in current list</p><strong id="transit-count">—</strong><span>from the loaded transfer-history page</span></article><article class="stat"><p>Out of stock</p><strong id="empty-count">—</strong><span>recorded balances at zero</span></article></div>
         <div class="card"><div class="card-heading"><div><h2>Available stock</h2><p class="muted">Goods in transit are not available for sale.</p></div><div class="row-actions manager-only product-shortcuts"><button type="button" class="primary" data-stock-action="open">Add stock to a branch</button><button type="button" class="secondary" data-product-action="add">Create new product</button><button type="button" class="secondary" data-product-action="edit">Edit product</button></div></div><div class="catalog-toolbar"><label>Find stock<input id="inventory-search" type="search" placeholder="Search product, barcode or category"></label></div><div id="inventory-categories" class="category-tabs" role="group" aria-label="Inventory categories"></div><div id="inventory-table"></div></div>

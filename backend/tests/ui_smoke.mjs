@@ -39,7 +39,7 @@ async function wait(expression) {
     if (await evaluate(expression)) return;
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-  throw new Error('Timed out waiting for: ' + expression + '\nNotice: ' + await evaluate("document.querySelector('#notice')?.textContent"));
+  throw new Error('Timed out waiting for: ' + expression + '\nNotice: ' + await evaluate("JSON.stringify({notice:document.querySelector('#notice')?.textContent,login:document.querySelector('#login-error')?.textContent,offline:state.offline,valid:document.querySelector('#login-form')?.checkValidity(),user:state.user?.username,fields:[...document.querySelector('#login-form').elements].map(e=>[e.name,e.type,e.value.length,e.validationMessage]),hidden:document.querySelector('#workspace').hidden})")+' Exceptions: '+JSON.stringify(exceptions));
 }
 async function fill(formId, values) {
   await evaluate(`(() => { const form = document.getElementById(${JSON.stringify(formId)}); for (const [key,value] of Object.entries(${JSON.stringify(values)})) { const input = form.elements.namedItem(key); input.value = value; input.dispatchEvent(new Event('change', { bubbles:true })); input.dispatchEvent(new Event('input', { bubbles:true })); } })()`);

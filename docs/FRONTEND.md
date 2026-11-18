@@ -182,3 +182,10 @@ For a product created directly in Manage products, **Add stock for this product*
 opens the delivery form. Existing request keys still protect delivery retries.
 Only Admins/Managers can create products and receive stock. Salespersons continue
 using their assigned branch. No schema change is required for this workflow.
+
+
+## Offline branch sales
+
+The installable PWA supports prepared-branch stock/catalogue/customer viewing and
+Cash/POS/credit sales saved on the designated branch device. Read [OFFLINE_PWA.md](OFFLINE_PWA.md)
+for preparation, session expiry, sync/review, recovery and reporting-date behavior.

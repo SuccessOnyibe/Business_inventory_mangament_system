@@ -38,13 +38,15 @@ class FrontendTests(unittest.TestCase):
         parser.feed(TestClient(main.app).get('/app/').text)
         self.assertEqual(parser.errors, [])
         self.assertEqual(parser.stack, [])
-        self.assertTrue({'view-accounts','view-credit','view-products','view-transfers','view-sales'} <= parser.views)
+        self.assertTrue({'view-accounts','view-credit','view-products','view-transfers','view-sales','view-offline'} <= parser.views)
 
     def test_local_frontend_assets_do_not_connect_to_database(self):
         client = TestClient(main.app)
         with patch.object(main, 'db_connection') as connection:
             for path, content in (('/app/', 'FESTY AGRIC SERVICES'), ('/app/app.js', 'payment_method'),
-                                  ('/app/style.css', '.workspace')):
+                                  ('/app/style.css', '.workspace'), ('/app/sw.js', 'festy-shell-'),
+                                  ('/app/offline-store.js', 'indexedDB.open'), ('/app/offline.js', 'Idempotency-Key'),
+                                  ('/app/manifest.webmanifest', 'standalone')):
                 response = client.get(path)
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(content, response.text)

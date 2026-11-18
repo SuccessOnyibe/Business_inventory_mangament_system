@@ -111,7 +111,7 @@ try {
   } finally {
     await evaluate(`(() => {const {branch,...original}=window.orderOriginal;Object.assign(state,original);document.querySelector('#sale-form').elements.branch_id.value=branch;delete window.orderOriginal;fillChoices();render();})()`);
   }
-  const views=['receiving','products','accounts','credit','transfers','reports','inventory','adjustments','reconciliations','customers','sales'];
+  const views=['offline','receiving','products','accounts','credit','transfers','reports','inventory','adjustments','reconciliations','customers','sales'];
   const cases=[
     {name:'desktop',width:1440,height:900,scale:1},
     {name:'zoom150',width:1280,height:552,scale:1.5},

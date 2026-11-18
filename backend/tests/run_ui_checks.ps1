@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([ValidateSet('layout','smoke')][string]$Suite = 'layout', [switch]$BackendChecks)
+param([ValidateSet('layout','smoke','offline')][string]$Suite = 'layout', [switch]$BackendChecks)
 $ErrorActionPreference='Stop'
 $projectRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $backend=Join-Path $projectRoot 'backend'

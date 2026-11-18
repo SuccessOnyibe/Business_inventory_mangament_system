@@ -1,13 +1,13 @@
 'use strict';
 
 // This frontend uses the same origin as FastAPI. A tab session survives page refresh.
-const state = { token: null, user: null, branches: [], products: [], users: [], inventory: [],
+const state = { offline: false, token: null, user: null, branches: [], products: [], users: [], inventory: [],
   sales: [], transfers: [], reconciliations: [], corrections: [], events: [], adjustments: [], receipts: [], customers: [], creditSales: [], repayments: [], posInventory: [], posBranch: '', inventoryCategory:'all', productCategory:'all', posCategory:'all', cart: [], receipt: null, correctionReceipt: null, report: null, reportParams: null,
   receivingDraft: null, lastReceipt: null, createdProductForStock: null, filter: '', salesPage: 0, transfersPage: 0, reconciliationsPage: 0, correctionsPage: 0, eventsPage: 0, adjustmentsPage: 0, receiptsPage: 0, customersPage: 0, creditSalesPage: 0, repaymentsPage: 0, view: 'inventory' };
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const PAGE_SIZE = 100;
-const titles = { receiving: ['Add stock', 'Record goods delivered to one branch.'], inventory: ['Inventory', 'Know what is available at each branch.'],
+const titles = { offline: ['Device & sync', 'Offline preparation, saved sales and upload results.'], receiving: ['Add stock', 'Record goods delivered to one branch.'], inventory: ['Inventory', 'Know what is available at each branch.'],
   sales: ['Sales', 'Record sales, customer discounts, and cash or POS payments.'],
   reconciliations: ['Daily reconciliation', 'Compare recorded sales with actual cash and POS collections.'],
   adjustments: ['Stock adjustments', 'Audited physical counts, damage, expiry, and corrections.'],
@@ -69,16 +69,18 @@ function notice(text, error = false) {
   $('#notice').textContent = text; $('#notice').className = error ? 'error' : ''; $('#notice').hidden = !text;
 }
 const SESSION_KEY = 'festy-session-token';
+const SESSION_EXPIRY_KEY = 'festy-session-expires';
 function savedSessionToken() {
   try { return sessionStorage.getItem(SESSION_KEY); } catch { return null; }
 }
-function saveSessionToken(token) {
+function saveSessionToken(token, expiresAt) {
   // Only the opaque session token is stored, never the password or trusted role data.
-  try { sessionStorage.setItem(SESSION_KEY, token); } catch { /* Memory-only login still works. */ }
+  try { sessionStorage.setItem(SESSION_KEY, token); if(expiresAt)sessionStorage.setItem(SESSION_EXPIRY_KEY,String(expiresAt)); } catch { /* Memory-only login still works. */ }
 }
 function showLogin(clearSavedSession = true) {
-  if(clearSavedSession) { try { sessionStorage.removeItem(SESSION_KEY); } catch { /* Storage can be blocked. */ } }
-  state.token = null; state.user = null; hidePosSuggestions();
+  if(clearSavedSession) { Offline.signOut().catch(()=>{}); try { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); } catch { /* Storage can be blocked. */ } }
+  state.token = null; state.user = null; state.offline=false;document.body.dataset.offline='false';hidePosSuggestions();
+  $('#offline-sales').replaceChildren();
   state.receivingDraft=null; state.lastReceipt=null; state.createdProductForStock=null;
   for(const id of ['receipt-result','product-receiving-context','created-product-next']) $('#'+id).hidden=true;
   // Clear the previous user's visible data when switching accounts on one browser.
@@ -103,11 +105,15 @@ function showLogin(clearSavedSession = true) {
   delete document.body.dataset.role;
 }
 async function api(path, options = {}) {
+  if(state.offline && !options.forceOnline && path!=='/auth/me')return Offline.cachedRead(path,options.method||'GET');
+  const {forceOnline, ...requestOptions}=options;
+  // A stalled connection must release the offline sale screen; its UUID remains retryable.
+  if(forceOnline&&!requestOptions.signal&&typeof AbortSignal.timeout==='function')requestOptions.signal=AbortSignal.timeout(15000);
   const headers = { ...options.headers };
   if (state.token) headers.Authorization = `Bearer ${state.token}`;
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   let response;
-  try { response = await fetch(path, { ...options, headers, body: options.body === undefined ? undefined : JSON.stringify(options.body) }); }
+  try { response = await fetch(path, { ...requestOptions, headers, body: options.body === undefined ? undefined : JSON.stringify(options.body) }); }
   catch { const error = new Error('Could not reach the server.'); error.status = 0; throw error; }
   const body = response.status === 204 ? null : await response.json();
   if (!response.ok) {
@@ -240,6 +246,7 @@ function render() {
   }
 }
 async function refresh() {
+  if(state.offline){await Offline.applyCache();return;}
   $('#refresh').disabled = true;
   try {
     const [branches, products] = await Promise.all([api('/branches'), api('/products')]);
@@ -256,6 +263,10 @@ async function refresh() {
     await loadReconciliationSummary();
     await updateCreditCustomer();
     await updatePosStock();
+    try { await Offline.afterRefresh(); } catch { $('#offline-status').textContent='Device data could not be updated. Prepare again before offline selling.'; }
+  } catch(error) {
+    if((!error.status||error.status>=500) && await Offline.restore(state.token)) {state.offline=true;await Offline.enter();notice('Offline: showing downloaded stock less saved device sales.');}
+    else throw error;
   } finally { $('#refresh').disabled = false; renderPosProducts(); }
 }
 async function allUsers() {
@@ -270,6 +281,7 @@ async function refreshAfterSave() {
   catch (error) { notice('Your change was saved, but the lists could not refresh: ' + error.message, true); }
 }
 function showView(view) {
+  if(state.offline && !['inventory','sales','products','customers','offline'].includes(view)){notice('This screen needs an internet connection.',true);return;}
   if (view === 'accounts' && state.user.role !== 'admin') return;
   if (['reports','receiving'].includes(view) && !manager()) return;
   state.view = view; document.body.dataset.view=view;
@@ -330,6 +342,7 @@ function restorePendingForms() {
   if (restored && $('#notice').hidden) notice('An earlier sale or stock request needs confirmation. Open its form and retry the saved request.');
 }
 async function stockSubmit(form, path, buildBody, saved) {
+  if(state.offline && form.id!=='sale-form'){notice('This action needs internet.',true);return;}
   const button = form.querySelector('[type=submit]');
   let pending;
   try {
@@ -414,6 +427,7 @@ function addCartItem() {
 function receiptContent(receipt) {
   const container = node('div', null, 'receipt-content');
   const correction = receipt.receipt_type === 'correction';
+  if(receipt.receipt_type==='offline')container.append(node('p','PROVISIONAL - AWAITING SYNC. Not a server-confirmed receipt.','error'));
   const repayment = receipt.receipt_type === 'repayment';
   container.append(node('h2', 'FESTY AGRIC SERVICES'), node('p', `${repayment ? 'Credit repayment / reversal' : correction ? 'Refund / reversal' : 'Sales receipt'} · ${receipt.receipt_number}`, 'small'));
   if (correction) container.append(node('p', `Original receipt: ${receipt.original_receipt_number} · ${receipt.kind}`, 'small'));
@@ -547,7 +561,8 @@ function renderCorrections() {
 
 // Refresh uses the existing server session; it does not create another login.
 async function openWorkspace() {
-  state.user = await api('/auth/me');
+  try { state.user = await api('/auth/me',{forceOnline:true});state.offline=false; }
+  catch(error) { if((!error.status||error.status>=500) && await Offline.restore(state.token)){await Offline.enter();}else throw error; }
   document.body.dataset.role = state.user.role;
   $('#profile').textContent = `${state.user.username} · ${state.user.role}`;
   $('#login-screen').hidden = true; $('#workspace').hidden = false;
@@ -559,6 +574,8 @@ async function openWorkspace() {
   $('#unassigned').hidden = !unassigned;
   if (unassigned) { $$('.view').forEach(view => { view.hidden = true; }); return; }
   await refresh();
+  Offline.render();
+  if(!state.offline)Offline.sync();
 }
 async function restoreSession() {
   const token = savedSessionToken();
@@ -579,12 +596,14 @@ $('#login-form').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget; const button = form.querySelector('[type=submit]'); button.disabled = true; $('#login-error').textContent = '';
   try {
     const result = await api('/auth/login', { method: 'POST', body: { username: field(form, 'username'), password: field(form, 'password') } });
-    form.elements.password.value = ''; state.token = result.access_token; saveSessionToken(state.token);
+    form.elements.password.value = ''; state.token = result.access_token; saveSessionToken(state.token,Date.now()+result.expires_in*1000);
     await openWorkspace();
   } catch (error) { if (!state.user) { showLogin(error.status === 401); $('#login-error').textContent = error.message; } else notice(error.message, true); }
   finally { button.disabled = false; }
 });
 $('#logout').addEventListener('click', async () => {
+  if(Offline.hasPending()&&!window.confirm('Unsynced sales remain on this device. Sign back in as this account to upload them. Sign out?'))return;
+  if(state.offline){await Offline.signOut();showLogin();return;}
   try { await api('/auth/logout', { method: 'POST' }); showLogin(); }
   catch (error) { notice('Could not confirm logout: ' + error.message, true); }
 });
@@ -598,14 +617,19 @@ $$('[data-page]').forEach(button => button.addEventListener('click', () => {
 $('#product-search').addEventListener('input', renderProducts);
 $('#sale-product').addEventListener('change', () => updateSalePolicy());
 $('#sale-form').addEventListener('input', updateSaleTotal);
-$('#sale-form').addEventListener('submit', event => {
+$('#sale-form').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget;
   if (!readPending(form)) {
     if (!state.cart.length && !addCartItem()) return;
     if (field(form, 'product_id')) { notice('Add the selected product before completing the purchase.', true); return; }
   }
-  stockSubmit(form, '/checkouts', () => ({ branch_id: Number(field(form, 'branch_id')), items: state.cart.map(item => ({ ...item })),
-    payment_method: field(form, 'payment_method'), ...(field(form,'payment_method') === 'credit' ? { customer_id:Number(field(form,'customer_id')) } : {}), customer_name: nullable(field(form, 'customer_name')), notes: nullable(field(form, 'notes')) }),
+  const checkoutBody=() => ({ branch_id: Number(field(form, 'branch_id')), items: state.cart.map(item => ({ ...item })),
+    payment_method: field(form, 'payment_method'), ...(field(form,'payment_method') === 'credit' ? { customer_id:Number(field(form,'customer_id')) } : {}), customer_name: nullable(field(form, 'customer_name')), notes: nullable(field(form, 'notes')) });
+  const submit=form.querySelector('[type=submit]');submit.disabled=true;
+  try { if(await Offline.checkout(form,checkoutBody))return; }
+  catch(error){notice(error.message+' The basket has not been cleared.',true);return;}
+  finally{submit.disabled=false;}
+  stockSubmit(form, '/checkouts', checkoutBody,
     sale => { state.cart = []; renderCart(); receiptDetails(sale); notice(`Sale #${sale.id} saved · ${paymentName(sale.payment_method)} · ${date(sale.created_at)}.`); });
 });
 $('#receipt-form').addEventListener('submit', event => {
@@ -1185,4 +1209,4 @@ $('#pos-search').addEventListener('keydown',event=>{
 });
 
 // Attach every handler before restoring the session or enabling manual sign-in.
-restoreSession().finally(() => { $('#login-form [type=submit]').disabled = false; });
+Offline.boot().then(token=>{if(token&&!savedSessionToken())saveSessionToken(token);return restoreSession();}).finally(() => { $('#login-form [type=submit]').disabled = false; });

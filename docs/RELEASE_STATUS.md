@@ -154,3 +154,13 @@ request replay after branch reassignment. No schema migration is required.
 Validation: 178 backend tests, five targeted customer safeguard checks and browser
 staff customer/credit/repayment workflows passed on disposable PostgreSQL. No online
 business transactions were submitted during verification.
+
+
+## Offline PWA (2026-11-18)
+
+Prepared branch devices can view downloaded catalogue/stock/customers and save
+Cash/POS/credit checkouts in IndexedDB. Serial reconnection uploads reuse existing
+server UUID idempotency and checkout transactions. Provisional receipts and
+reviewable conflicts stay visible; original capture time is retained in notes,
+while reports use the server posting date. No schema migration or paid service
+is added. See [OFFLINE_PWA.md](OFFLINE_PWA.md) for setup and limits.

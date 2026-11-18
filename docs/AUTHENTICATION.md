@@ -165,3 +165,13 @@ or trusts a cached role. Refresh reuses the same server session and does not ext
 its eight-hour expiry. Logout and 401 responses remove the saved token. Temporary
 connection failures preserve it so a refresh can retry. If browser storage is
 blocked, sign-in still works in memory and refresh requires sign-in again.
+
+
+## Prepared offline devices
+
+Opting into Device & sync also stores the opaque token, cached identity and original
+eight-hour expiry in IndexedDB for reopening offline. Passwords are never stored.
+Offline access is limited to that account and prepared branch; server uploads always
+revalidate the real session/permissions. Refresh does not extend expiry. Logout
+removes the offline identity but retains unsynced receipts for the original account.
+An unprepared browser retains the tab-only behavior above. See [OFFLINE_PWA.md](OFFLINE_PWA.md).
