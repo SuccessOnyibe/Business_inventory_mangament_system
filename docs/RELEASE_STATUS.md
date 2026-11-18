@@ -164,3 +164,10 @@ server UUID idempotency and checkout transactions. Provisional receipts and
 reviewable conflicts stay visible; original capture time is retained in notes,
 while reports use the server posting date. No schema migration or paid service
 is added. See [OFFLINE_PWA.md](OFFLINE_PWA.md) for setup and limits.
+
+Verified and deployed to the existing Free staging service on 2026-11-18, source
+commit 9f575a7. Offline browser scenarios and the existing online smoke suite
+passed using disposable PostgreSQL databases; all 60 page/viewport combinations
+and three public-shell/markup tests passed. Public deployment checks confirmed
+matching assets, database readiness and offline shell reload without signing in
+or writing business data. Deployment metadata is in deployment/render-staging.json.
